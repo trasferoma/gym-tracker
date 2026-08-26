@@ -54,6 +54,10 @@ export function addExercise(workout: Workout, groupId: string, name: string): Wo
     });
 }
 
+export function renameExercise(workout: Workout, groupId: string, exerciseId: string, name: string): Workout {
+    return replaceExerciseWithin(workout, groupId, exerciseId, (exercise) => ({ ...exercise, name }));
+}
+
 export function removeExercise(workout: Workout, groupId: string, exerciseId: string): Workout {
     return replaceMuscleGroup(workout, groupId, (group) => {
         findExercise(group, exerciseId);

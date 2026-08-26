@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue';
+import { ref, shallowRef, type Ref } from 'vue';
 
 import { type AutosaveStatus, useAutosave } from './useAutosave';
 import * as completion from '@/domain/workoutCompletion';
@@ -22,6 +22,7 @@ export interface UseWorkoutDraft {
     removeMuscleGroup(groupId: string): void;
     reorderMuscleGroup(groupId: string, direction: ReorderDirection): void;
     addExercise(groupId: string, name: string): void;
+    renameExercise(groupId: string, exerciseId: string, name: string): void;
     removeExercise(groupId: string, exerciseId: string): void;
     reorderExercise(groupId: string, exerciseId: string, direction: ReorderDirection): void;
     addExerciseSet(groupId: string, exerciseId: string): void;
@@ -35,7 +36,7 @@ export interface UseWorkoutDraft {
 }
 
 export function useWorkoutDraft(): UseWorkoutDraft {
-    const workout = ref<Workout>();
+    const workout = shallowRef<Workout>();
     const rejectionReason = ref<string>();
     const autosave = useAutosave<Workout>(saveWorkout);
 
@@ -104,6 +105,12 @@ export function useWorkoutDraft(): UseWorkoutDraft {
     function addExercise(groupId: string, name: string): void {
         const current = requireLoadedWorkout();
         const next = structure.addExercise(current, groupId, name);
+        commitWorkout(next);
+    }
+
+    function renameExercise(groupId: string, exerciseId: string, name: string): void {
+        const current = requireLoadedWorkout();
+        const next = structure.renameExercise(current, groupId, exerciseId, name);
         commitWorkout(next);
     }
 
@@ -181,6 +188,7 @@ export function useWorkoutDraft(): UseWorkoutDraft {
         removeMuscleGroup,
         reorderMuscleGroup,
         addExercise,
+        renameExercise,
         removeExercise,
         reorderExercise,
         addExerciseSet,

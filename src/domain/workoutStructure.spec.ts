@@ -11,6 +11,7 @@ import {
     removeExercise,
     removeExerciseSet,
     removeMuscleGroup,
+    renameExercise,
     updateExerciseSet,
     updateWorkoutNotes
 } from './workoutStructure';
@@ -185,6 +186,39 @@ describe('esercizi e serie', () => {
             'Pushdown ai cavi'
         ]);
         expect(workout.muscleGroups[0]!.exercises.map((exercise) => exercise.position)).toEqual([0, 1]);
+    });
+});
+
+describe('renameExercise', () => {
+    it('cambia il nome dell esercizio indicato lasciando intatti gli altri esercizi e gruppi', () => {
+        let workout = createDraftWorkout('2026-01-15');
+        workout = unwrap(addMuscleGroup(workout, 'Petto'));
+        workout = unwrap(addMuscleGroup(workout, 'Schiena'));
+        const [pettoGroup, schienaGroup] = workout.muscleGroups;
+        workout = addExercise(workout, pettoGroup!.id, 'Panca piana');
+        workout = addExercise(workout, pettoGroup!.id, 'Croci');
+        workout = addExercise(workout, schienaGroup!.id, 'Lat machine');
+        const exerciseToRename = workout.muscleGroups[0]!.exercises[0]!;
+
+        const renamed = renameExercise(workout, pettoGroup!.id, exerciseToRename.id, 'Panca piana con manubri');
+
+        const renamedExercise = renamed.muscleGroups[0]!.exercises[0]!;
+        expect(renamedExercise.name).toBe('Panca piana con manubri');
+        expect(renamedExercise.id).toBe(exerciseToRename.id);
+        expect(renamed.muscleGroups[0]!.exercises[1]!.name).toBe('Croci');
+        expect(renamed.muscleGroups[1]!.exercises[0]!.name).toBe('Lat machine');
+    });
+
+    it('non muta il documento originale', () => {
+        let workout = createDraftWorkout('2026-01-15');
+        workout = unwrap(addMuscleGroup(workout, 'Gambe'));
+        const groupId = workout.muscleGroups[0]!.id;
+        workout = addExercise(workout, groupId, 'Squat');
+        const exerciseId = workout.muscleGroups[0]!.exercises[0]!.id;
+
+        renameExercise(workout, groupId, exerciseId, 'Squat frontale');
+
+        expect(workout.muscleGroups[0]!.exercises[0]!.name).toBe('Squat');
     });
 });
 

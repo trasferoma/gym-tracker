@@ -121,6 +121,7 @@ function addExercise(name: string): void {
         :group-position="groupPosition"
         :index="exerciseIndex"
         :total="group.exercises.length"
+        :suggestions="suggestions"
         :draft="draft"
         @delete="requestDeleteExercise(exercise)"
       />
@@ -128,7 +129,7 @@ function addExercise(name: string): void {
         v-if="addingExercise"
         :group-name="group.name"
         :suggestions="suggestions"
-        @add="addExercise"
+        @confirm="addExercise"
         @cancel="addingExercise = false"
       />
       <div

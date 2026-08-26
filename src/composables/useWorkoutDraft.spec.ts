@@ -1,12 +1,14 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { useWorkoutDraft } from './useWorkoutDraft';
 import { gymTrackerDatabase } from '@/persistence/gymTrackerDatabase';
+import * as workoutRepository from '@/persistence/workoutRepository';
 import { findWorkoutById, saveWorkout } from '@/persistence/workoutRepository';
 import { createDraftWorkout } from '@/domain/workoutFactory';
 import type { Workout } from '@/domain/workout';
 
 afterEach(async () => {
+    vi.restoreAllMocks();
     await gymTrackerDatabase.workouts.clear();
 });
 
@@ -109,6 +111,60 @@ describe('note, ripetizioni, peso e spunta di una serie', () => {
 
         const set = draft.workout.value?.muscleGroups[0]?.exercises[0]?.sets[0];
         expect(set).toMatchObject({ repetitions: 8, weight: 22.5, completed: true });
+    });
+});
+
+async function seedWorkoutWithExistingExerciseAndSet(): Promise<Workout> {
+    return seedWorkout({
+        muscleGroups: [{
+            id: 'group-petto',
+            name: 'Petto',
+            position: 0,
+            exercises: [{
+                id: 'exercise-panca',
+                name: 'Panca piana',
+                position: 0,
+                notes: '',
+                sets: [{ id: 'set-1', position: 0, repetitions: 10, weight: 20, completed: false, notes: '' }]
+            }]
+        }]
+    });
+}
+
+describe('clonabilità strutturale', () => {
+    it('produce payload clonabili quando le mutazioni trascinano un esercizio e una serie già esistenti', async () => {
+        const seeded = await seedWorkoutWithExistingExerciseAndSet();
+        const saveWorkoutSpy = vi.spyOn(workoutRepository, 'saveWorkout');
+        const draft = useWorkoutDraft();
+        await draft.load(seeded.id);
+
+        draft.addExercise('group-petto', 'Croci ai cavi');
+        await draft.flushPendingSave();
+        draft.addExerciseSet('group-petto', 'exercise-panca');
+        await draft.flushPendingSave();
+        draft.updateSetRepetitions('group-petto', 'exercise-panca', 'set-1', 12);
+        await draft.flushPendingSave();
+
+        expect(saveWorkoutSpy).toHaveBeenCalledTimes(3);
+        for (const [savedPayload] of saveWorkoutSpy.mock.calls) {
+            expect(() => structuredClone(savedPayload)).not.toThrow();
+        }
+    });
+
+    it('produce un payload clonabile quando si aggiunge un esercizio a un gruppo copiato da una giornata precedente', async () => {
+        const source = await seedWorkoutWithExistingExerciseAndSet();
+        const saveWorkoutSpy = vi.spyOn(workoutRepository, 'saveWorkout');
+        const draft = useWorkoutDraft();
+        const created = await draft.createDraft('2026-02-11', source);
+        const copiedGroupId = created.muscleGroups[0]!.id;
+
+        draft.addExercise(copiedGroupId, 'Croci ai cavi');
+        await draft.flushPendingSave();
+
+        expect(saveWorkoutSpy).toHaveBeenCalledTimes(2);
+        for (const [savedPayload] of saveWorkoutSpy.mock.calls) {
+            expect(() => structuredClone(savedPayload)).not.toThrow();
+        }
     });
 });
 

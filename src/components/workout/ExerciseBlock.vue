@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
+import ExercisePicker from './ExercisePicker.vue';
 import SetRegister from './SetRegister.vue';
 import AppIcon from '@/components/icon/AppIcon.vue';
 import type { UseWorkoutDraft } from '@/composables/useWorkoutDraft';
@@ -15,10 +16,13 @@ const props = defineProps<{
     groupPosition: number;
     index: number;
     total: number;
+    suggestions: readonly string[];
     draft: UseWorkoutDraft;
 }>();
 
 const emit = defineEmits<{ delete: [] }>();
+
+const renaming = ref(false);
 
 const schemeChip = computed(() => schemeLabel(props.exercise.sets.map((set) => set.repetitions)));
 
@@ -32,6 +36,11 @@ function reorderDown(): void {
 
 function requestDelete(): void {
     emit('delete');
+}
+
+function renameExercise(name: string): void {
+    props.draft.renameExercise(props.group.id, props.exercise.id, name);
+    renaming.value = false;
 }
 
 function viewTrend(): void {
@@ -66,6 +75,14 @@ function viewTrend(): void {
       </button>
       <button
         type="button"
+        class="icon-btn"
+        aria-label="Rinomina esercizio"
+        @click="renaming = true"
+      >
+        <AppIcon name="pencil" />
+      </button>
+      <button
+        type="button"
         class="icon-btn icon-btn--danger"
         aria-label="Elimina esercizio"
         @click="requestDelete"
@@ -73,6 +90,15 @@ function viewTrend(): void {
         <AppIcon name="trash" />
       </button>
     </div>
+    <ExercisePicker
+      v-if="renaming"
+      mode="rename"
+      :group-name="group.name"
+      :suggestions="suggestions"
+      :initial-name="exercise.name"
+      @confirm="renameExercise"
+      @cancel="renaming = false"
+    />
     <p
       v-if="exercise.notes"
       class="ex-note"
@@ -100,13 +126,14 @@ function viewTrend(): void {
 .ex-head {
     display: flex;
     align-items: center;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 8px 12px;
 }
 
 .ex-name {
     font-weight: 650;
     font-size: 14.5px;
-    flex: 1 1 auto;
+    flex: 1 1 100%;
     min-width: 0;
 }
 

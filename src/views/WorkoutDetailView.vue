@@ -223,6 +223,13 @@ const removalAction = useAsyncAction(() => {
       {{ draft.rejectionReason.value }}
     </InfoBanner>
 
+    <InfoBanner
+      v-if="draft.saveErrorMessage.value"
+      tone="warn"
+    >
+      {{ draft.saveErrorMessage.value }}
+    </InfoBanner>
+
     <div class="sec">
       <h2>Gruppi muscolari</h2>
       <span>{{ workout.muscleGroups.length }} di {{ MAX_COMPLETED_MUSCLE_GROUPS }}</span>

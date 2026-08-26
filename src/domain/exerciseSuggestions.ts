@@ -1,10 +1,5 @@
 import type { Workout } from './workout';
 
-interface HistoryEntry {
-    readonly groupName: string;
-    readonly exerciseName: string;
-}
-
 export const MAX_VISIBLE_SUGGESTIONS = 8;
 
 export interface FilteredSuggestions {
@@ -13,12 +8,13 @@ export interface FilteredSuggestions {
 }
 
 export function suggestExerciseNames(workouts: readonly Workout[], groupName: string): readonly string[] {
-    const historyEntries = collectHistoryEntries(workouts);
-    const namesForGroup = uniqueExerciseNames(historyEntries.filter((entry) => entry.groupName === groupName));
-    if (namesForGroup.length > 0) {
-        return namesForGroup;
+    const workoutsByRecency = [...workouts].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    const seenNames = new Set<string>();
+    const names: string[] = [];
+    for (const workout of workoutsByRecency) {
+        collectExerciseNamesFromWorkout(workout, groupName, seenNames, names);
     }
-    return uniqueExerciseNames(historyEntries);
+    return names;
 }
 
 export function filterSuggestionsByQuery(suggestions: readonly string[], query: string): FilteredSuggestions {
@@ -45,46 +41,21 @@ function normalizeForSearch(value: string): string {
             .replace(DIACRITIC_MARKS_PATTERN, '');
 }
 
-function collectHistoryEntries(workouts: readonly Workout[]): readonly HistoryEntry[] {
-    const workoutsByRecency = [...workouts].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-    const seenGroupAndName = new Set<string>();
-    const entries: HistoryEntry[] = [];
-    for (const workout of workoutsByRecency) {
-        collectEntriesFromWorkout(workout, seenGroupAndName, entries);
-    }
-    return entries;
-}
-
-function collectEntriesFromWorkout(
-        workout: Workout, seenGroupAndName: Set<string>, entries: HistoryEntry[]): void {
+function collectExerciseNamesFromWorkout(
+        workout: Workout, groupName: string, seenNames: Set<string>, names: string[]): void {
     for (const group of workout.muscleGroups) {
-        for (const exercise of group.exercises) {
-            const key = buildHistoryKey(group.name, exercise.name);
-            if (seenGroupAndName.has(key)) {
-                continue;
-            }
-            seenGroupAndName.add(key);
-            entries.push({ groupName: group.name, exerciseName: exercise.name });
-        }
-    }
-}
-
-function uniqueExerciseNames(entries: readonly HistoryEntry[]): readonly string[] {
-    const seenNames = new Set<string>();
-    const names: string[] = [];
-    for (const entry of entries) {
-        const normalizedName = normalizeExerciseName(entry.exerciseName);
-        if (seenNames.has(normalizedName)) {
+        if (group.name !== groupName) {
             continue;
         }
-        seenNames.add(normalizedName);
-        names.push(entry.exerciseName);
+        for (const exercise of group.exercises) {
+            const normalizedName = normalizeExerciseName(exercise.name);
+            if (seenNames.has(normalizedName)) {
+                continue;
+            }
+            seenNames.add(normalizedName);
+            names.push(exercise.name);
+        }
     }
-    return names;
-}
-
-function buildHistoryKey(groupName: string, exerciseName: string): string {
-    return `${groupName}\u0000${normalizeExerciseName(exerciseName)}`;
 }
 
 function normalizeExerciseName(name: string): string {

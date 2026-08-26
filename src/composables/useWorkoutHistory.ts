@@ -1,4 +1,4 @@
-import { computed, ref, type ComputedRef, type Ref } from 'vue';
+import { computed, ref, shallowRef, type ComputedRef, type Ref } from 'vue';
 
 import { MUSCLE_GROUPS } from '@/domain/muscleGroups';
 import { todayLocalDate } from '@/domain/localDate';
@@ -24,7 +24,7 @@ export interface UseWorkoutHistory {
 export function useWorkoutHistory(): UseWorkoutHistory {
     const loading = ref(false);
     const groupFilter = ref<string>();
-    const workouts = ref<readonly Workout[]>([]);
+    const workouts = shallowRef<readonly Workout[]>([]);
 
     const allWorkouts = computed(() => workouts.value);
     const sortedWorkouts = computed(() => sortByDateDescendingThenCreationAscending(workouts.value));

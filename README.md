@@ -68,23 +68,36 @@ Per provare la PWA vera — service worker, installazione, funzionamento offline
 
 ## Pubblicazione su Cloudflare Pages
 
-Sito completamente statico. Da **Workers & Pages → Create → Pages → Connect to Git**, poi:
+Sito completamente statico, progetto Pages `gym-tracker`, indirizzo [gym-tracker-4tm.pages.dev](https://gym-tracker-4tm.pages.dev). Non c'è connessione a git: i deploy sono **caricamenti diretti** da riga di comando, non automatici sul push.
 
-| Impostazione | Valore |
-| --- | --- |
-| Framework preset | None (oppure Vue) |
-| Build command | `npm run build` |
-| Build output directory | `dist` |
-| Node version | variabile d'ambiente `NODE_VERSION` = `22` |
-
-Nessuna variabile d'ambiente applicativa, nessuna funzione serverless, nessun binding. Ogni push sul branch produce un deploy.
-
-In alternativa, da riga di comando:
+**Da rifare a ogni implementazione che va provata sul telefono**, nell'ordine:
 
 ```bash
+# 1. incrementa APP_VERSION in src/appVersion.ts (v1.0.000 -> v1.0.001 -> ...)
 npm run build
-npx wrangler pages deploy dist
+npx wrangler pages deploy dist --project-name gym-tracker --branch production --commit-dirty=true
 ```
+
+Il numero mostrato in fondo alla schermata iniziale dell'app è quello di `APP_VERSION`: se dal telefono leggi ancora il numero precedente, stai usando la versione vecchia e non hai un problema di codice.
+
+**`--branch production` non è facoltativo.** Il ramo di produzione del progetto Pages si chiama `production`, mentre `wrangler` deduce il ramo da git e trova `master`: senza quel parametro il caricamento finisce in **anteprima**, su `master.gym-tracker-4tm.pages.dev`, e l'indirizzo pubblico continua a servire la build precedente. È già costato una sessione di diagnosi su un difetto che era già stato corretto. Per controllare dove è finito un caricamento:
+
+```bash
+npx wrangler pages deployment list --project-name gym-tracker
+```
+
+La colonna `Environment` deve dire `Production`. In dubbio, confronta il bundle servito con quello locale:
+
+```bash
+grep -o 'assets/index-[A-Za-z0-9_-]*\.js' dist/index.html
+curl -s https://gym-tracker-4tm.pages.dev/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'
+```
+
+`wrangler` 4 pretende Node 22: attivalo con `fnm` prima del build, come descritto sopra. Su Node 18 serve `npx wrangler@3`.
+
+Sul telefono l'aggiornamento non è immediato: il service worker è in modalità `prompt`, quindi va chiusa l'app dalle app recenti, riaperta, e va accettata la barra **«Nuova versione disponibile»**. I dati in IndexedDB non vengono toccati.
+
+In alternativa il progetto si può collegare a git da **Workers & Pages → Create → Pages → Connect to Git** (build command `npm run build`, output `dist`, variabile `NODE_VERSION` = `22`), e allora ogni push produrrebbe un deploy. Oggi non è così.
 
 L'app va servita in **HTTPS**: il service worker e l'installabilità lo richiedono. Cloudflare Pages lo fornisce da sé.
 

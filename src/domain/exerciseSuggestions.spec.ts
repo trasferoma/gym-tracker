@@ -52,18 +52,29 @@ describe('suggestExerciseNames', () => {
         expect(suggestions).toEqual(['Panca piana']);
     });
 
-    it('ripiega su tutti i nomi quando il gruppo corrente non ha storia', () => {
+    it('non propone nulla quando il gruppo corrente non ha storia, anche se altri gruppi ne hanno', () => {
         const workout = buildWorkout('2026-01-10', '2026-01-10T08:00:00.000Z', [
             ['Schiena', ['Lat machine']]
         ]);
 
         const suggestions = suggestExerciseNames([workout], 'Petto');
 
-        expect(suggestions).toEqual(['Lat machine']);
+        expect(suggestions).toEqual([]);
     });
 
     it('restituisce un elenco vuoto senza storico', () => {
         expect(suggestExerciseNames([], 'Petto')).toEqual([]);
+    });
+
+    it('lo stesso nome in un gruppo diverso non conta come già visto per il gruppo corrente', () => {
+        const workout = buildWorkout('2026-01-10', '2026-01-10T08:00:00.000Z', [
+            ['Spalle', ['Alzate laterali']],
+            ['Petto', ['Alzate laterali']]
+        ]);
+
+        const suggestions = suggestExerciseNames([workout], 'Petto');
+
+        expect(suggestions).toEqual(['Alzate laterali']);
     });
 });
 

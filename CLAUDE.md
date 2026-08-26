@@ -53,14 +53,36 @@ Il service worker in `npm run dev` non è rappresentativo: per provare offline, 
 
 L'app è **già pubblicata** su Cloudflare Pages, progetto `gym-tracker`, all'indirizzo [gym-tracker-4tm.pages.dev](https://gym-tracker-4tm.pages.dev). Verificato dall'esterno: `/`, `/manifest.webmanifest`, `/sw.js` e le icone rispondono tutti `200`.
 
-Rifare build e deploy sono due comandi, verificati sul campo:
+**Ogni volta che si chiude un'implementazione che l'utente deve provare, si ripubblica.** La procedura è di tre passi, verificata sul campo:
 
 ```bash
+# 1. incrementa APP_VERSION in src/appVersion.ts (v1.0.000 -> v1.0.001 -> ...)
 npm run build
-npx wrangler pages deploy dist
+npx wrangler pages deploy dist --project-name gym-tracker --branch production --commit-dirty=true
 ```
 
+L'incremento della versione non è un vezzo: il numero compare in fondo alla schermata iniziale ed è l'unico modo che l'utente ha, dal telefono, di sapere se sta guardando la build nuova o quella vecchia rimasta nel service worker.
+
+**Ogni volta che serve ripubblicare, riporta a schermo i passaggi**, anche quando li esegui tu e anche se sono già scritti qui: l'utente deve poterli rileggere e rieseguire da sé senza aprire questo file. Come minimo, testuale e copiabile:
+
+```bash
+npx wrangler pages deploy dist --project-name gym-tracker --branch production --commit-dirty=true
+```
+
+Insieme al comando dichiara sempre: la versione a cui hai portato `APP_VERSION`, se il build è stato rifatto, e l'esito del controllo `Environment` = `Production`. Non dare per scontato che l'utente ricordi il parametro del ramo: è esattamente ciò che era già andato storto.
+
+**`--branch production` è obbligatorio.** Il ramo di produzione del progetto Pages si chiama `production`, mentre `wrangler` deduce il ramo da git e ora trova `master`: senza quel parametro il caricamento finisce in **Preview** su `master.gym-tracker-4tm.pages.dev`, e l'indirizzo pubblico continua a servire la build precedente. È già successo, ed è costato una diagnosi su un difetto che era già stato corretto. Il controllo dopo il deploy:
+
+```bash
+npx wrangler pages deployment list --project-name gym-tracker
+curl -s https://gym-tracker-4tm.pages.dev/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'
+```
+
+La colonna `Environment` dell'ultimo deployment deve dire `Production`, e il bundle servito deve coincidere con quello di `dist/index.html`.
+
 Il progetto esiste già, quindi `wrangler` non chiede più di crearlo: carica e stampa l'indirizzo. Non c'è connessione a git (`No Git connection` nella dashboard): i deploy sono **caricamenti diretti**, non automatici sul push.
+
+Sul telefono l'app installata non si aggiorna da sola: il service worker è in `registerType: 'prompt'` e il controllo avviene all'avvio. Va chiusa dalle app recenti, riaperta, e va accettata la barra «Nuova versione disponibile». IndexedDB non viene toccato.
 
 ### Prima, attivare Node 22
 
@@ -96,6 +118,7 @@ components/   presentazionali, per concetto (shell, feedback, workout, statistic
 views/        una per rotta, thin
 router/       rotte + memoria della provenienza + indicatore di caricamento
 styles/       tokens.css (variabili) + base.css
+appVersion.ts numero di versione mostrato in fondo alla Home, da incrementare a ogni deploy
 ```
 
 Regole architetturali da non violare — sono state verificate e vanno mantenute:

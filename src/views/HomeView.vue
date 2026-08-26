@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 
+import { APP_VERSION } from '@/appVersion';
 import AppIcon from '@/components/icon/AppIcon.vue';
 import AppTopBar from '@/components/shell/AppTopBar.vue';
 import { sharedLoadingIndicator } from '@/composables/useLoadingIndicator';
@@ -89,12 +90,9 @@ const lastCompletedGroups = computed(() => (
       {{ lastCompletedGroups }}
     </p>
 
-    <RouterLink
-      class="btn btn--ghost btn--block history-link"
-      :to="{ name: 'history' }"
-    >
-      Vai allo storico<AppIcon name="next" />
-    </RouterLink>
+    <p class="home-version">
+      {{ APP_VERSION }}
+    </p>
   </div>
 </template>
 
@@ -178,13 +176,10 @@ const lastCompletedGroups = computed(() => (
     text-transform: capitalize;
 }
 
-.history-link {
-    margin-top: auto;
-    margin-bottom: 4px;
-}
-
-.history-link svg {
-    width: 15px;
-    height: 15px;
+.home-version {
+    margin: auto 0 0;
+    padding-top: 22px;
+    font-size: 11px;
+    color: var(--text-faint);
 }
 </style>

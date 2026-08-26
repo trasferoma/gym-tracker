@@ -78,7 +78,7 @@ describe('ExercisePicker', () => {
         const firstSuggestionButton = wrapper.findAll('.sugg button')[0];
         await firstSuggestionButton?.trigger('click');
 
-        expect(wrapper.emitted('add')).toEqual([['Panca piana con manubri']]);
+        expect(wrapper.emitted('confirm')).toEqual([['Panca piana con manubri']]);
         expect((wrapper.find('input').element as HTMLInputElement).value).toBe('');
     });
 
@@ -88,5 +88,42 @@ describe('ExercisePicker', () => {
 
         expect(wrapper.findAll('.sugg button')).toHaveLength(8);
         expect(wrapper.find('.sugg-more').text()).toBe('+3 altri');
+    });
+
+    describe('modalità rinomina', () => {
+        function mountRenamePicker() {
+            return mount(ExercisePicker, {
+                props: {
+                    mode: 'rename',
+                    groupName: 'Petto',
+                    suggestions: RECENT_SUGGESTIONS,
+                    initialName: 'Panca piana'
+                }
+            });
+        }
+
+        it('parte precompilato con il nome attuale e mostra i testi propri della modalità', () => {
+            const wrapper = mountRenamePicker();
+
+            expect((wrapper.find('input').element as HTMLInputElement).value).toBe('Panca piana');
+            expect(wrapper.find('.field span').text()).toBe('Nuovo nome dell\'esercizio');
+            expect(wrapper.find('.btn--primary').text()).toBe('Rinomina');
+        });
+
+        it('confermando emette il nuovo nome', async () => {
+            const wrapper = mountRenamePicker();
+
+            await wrapper.find('input').setValue('Panca piana con manubri');
+            await wrapper.find('.btn--primary').trigger('click');
+
+            expect(wrapper.emitted('confirm')).toEqual([['Panca piana con manubri']]);
+        });
+
+        it('l aggiunta continua a usare i testi originali', () => {
+            const wrapper = mountPicker();
+
+            expect(wrapper.find('.field span').text()).toBe('Nome del nuovo esercizio');
+            expect(wrapper.find('.btn--primary').text()).toBe('Aggiungi');
+        });
     });
 });

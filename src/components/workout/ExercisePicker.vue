@@ -3,16 +3,20 @@ import { computed, ref, useTemplateRef } from 'vue';
 
 import { filterSuggestionsByQuery } from '@/domain/exerciseSuggestions';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
+    mode?: 'add' | 'rename';
     groupName: string;
     suggestions: readonly string[];
-}>();
+    initialName?: string;
+}>(), { mode: 'add', initialName: '' });
 
-const emit = defineEmits<{ add: [name: string]; cancel: [] }>();
+const emit = defineEmits<{ confirm: [name: string]; cancel: [] }>();
 
-const nameInput = ref('');
+const nameInput = ref(props.initialName);
 const inputRef = useTemplateRef('input');
 const filtered = computed(() => filterSuggestionsByQuery(props.suggestions, nameInput.value));
+const fieldLabel = computed(() => (props.mode === 'rename' ? 'Nuovo nome dell\'esercizio' : 'Nome del nuovo esercizio'));
+const confirmLabel = computed(() => (props.mode === 'rename' ? 'Rinomina' : 'Aggiungi'));
 
 function confirm(): void {
     const trimmedName = nameInput.value.trim();
@@ -20,12 +24,12 @@ function confirm(): void {
         inputRef.value?.focus();
         return;
     }
-    emit('add', trimmedName);
+    emit('confirm', trimmedName);
     nameInput.value = '';
 }
 
 function pickSuggestion(name: string): void {
-    emit('add', name);
+    emit('confirm', name);
     nameInput.value = '';
 }
 </script>
@@ -33,7 +37,7 @@ function pickSuggestion(name: string): void {
 <template>
   <div class="add-panel">
     <label class="field">
-      <span>Nome del nuovo esercizio</span>
+      <span>{{ fieldLabel }}</span>
       <input
         ref="input"
         v-model="nameInput"
@@ -82,7 +86,7 @@ function pickSuggestion(name: string): void {
         class="btn btn--primary btn--sm"
         @click="confirm"
       >
-        Aggiungi
+        {{ confirmLabel }}
       </button>
       <button
         type="button"
