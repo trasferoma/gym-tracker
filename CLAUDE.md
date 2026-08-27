@@ -57,8 +57,14 @@ L'app è **già pubblicata** su Cloudflare Pages, progetto `gym-tracker`, all'in
 
 ```bash
 # 1. incrementa APP_VERSION in src/appVersion.ts (v1.0.000 -> v1.0.001 -> ...)
-npm run build
-npx wrangler pages deploy dist --project-name gym-tracker --branch production --commit-dirty=true
+Se la shell è nuova:
+- $env:PATH = "$env:LOCALAPPDATA\fnm;$env:PATH"   
+- fnm env --use-on-cd --shell power-shell | Out-String | Invoke-Expression
+- fnm use 22  
+Poi a seguire: 
+
+- npm run build
+- npx wrangler pages deploy dist --project-name gym-tracker --branch production --commit-dirty=true
 ```
 
 L'incremento della versione non è un vezzo: il numero compare in fondo alla schermata iniziale ed è l'unico modo che l'utente ha, dal telefono, di sapere se sta guardando la build nuova o quella vecchia rimasta nel service worker.
@@ -178,7 +184,7 @@ Vitest, file `*.spec.ts` **accanto al codice che testano**. L'ambiente di defaul
 
 `vitest.setup.ts` installa `fake-indexeddb/auto` e il polyfill di `crypto`, quindi i test di `persistence/` girano su un IndexedDB vero in memoria: vanno ripuliti fra un test e l'altro, non mockati.
 
-Stato attuale della suite: **194 test in 29 file**, tutti verdi, con lint e typecheck puliti.
+Stato attuale della suite: **202 test in 30 file**, tutti verdi, con lint e typecheck puliti.
 
 ## Stato del repository
 

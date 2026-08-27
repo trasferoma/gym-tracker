@@ -13,6 +13,7 @@ import {
     removeMuscleGroup,
     renameExercise,
     updateExerciseSet,
+    updateWorkoutDate,
     updateWorkoutNotes
 } from './workoutStructure';
 import type { Workout } from './workout';
@@ -230,6 +231,30 @@ describe('updateWorkoutNotes', () => {
 
         expect(updated.notes).toBe('Poco tempo, riscaldamento ridotto.');
         expect(updated.id).toBe(workout.id);
+    });
+});
+
+describe('updateWorkoutDate', () => {
+    it('cambia la data lasciando invariati gruppi, stato e createdAt', () => {
+        let workout = createDraftWorkout('2026-01-15');
+        workout = unwrap(addMuscleGroup(workout, 'Petto'));
+        const completed: Workout = { ...workout, status: 'completed' };
+
+        const updated = updateWorkoutDate(completed, '2026-02-01');
+
+        expect(updated.workoutDate).toBe('2026-02-01');
+        expect(updated.id).toBe(completed.id);
+        expect(updated.createdAt).toBe(completed.createdAt);
+        expect(updated.status).toBe('completed');
+        expect(updated.muscleGroups).toEqual(completed.muscleGroups);
+    });
+
+    it('non muta il documento originale', () => {
+        const workout = createDraftWorkout('2026-01-15');
+
+        updateWorkoutDate(workout, '2026-02-01');
+
+        expect(workout.workoutDate).toBe('2026-01-15');
     });
 });
 

@@ -5,7 +5,6 @@ import type { Workout } from '@/domain/workout';
 const shortDayFormatter = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
 const longDayFormatter = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
 const compactDayFormatter = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short' });
-const timeFormatter = new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit' });
 
 function formatShortDay(date: Date): string {
     return shortDayFormatter.format(date);
@@ -17,10 +16,6 @@ function formatLongDay(date: Date): string {
 
 function formatCompactDay(date: Date): string {
     return compactDayFormatter.format(date);
-}
-
-export function formatTime(date: Date): string {
-    return timeFormatter.format(date);
 }
 
 export function formatWorkoutDayShort(workoutDate: string): string {
@@ -36,11 +31,6 @@ export function formatWorkoutDayLong(workoutDate: string): string {
 export function formatWorkoutDayCompact(workoutDate: string): string {
     const date = parseLocalDate(workoutDate);
     return formatCompactDay(date);
-}
-
-export function formatIsoTime(isoTimestamp: string): string {
-    const date = new Date(isoTimestamp);
-    return formatTime(date);
 }
 
 export function formatWeight(weight: number): string {

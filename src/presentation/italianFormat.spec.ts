@@ -3,8 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
     describeAllDataLoss,
     describeWorkoutDeletion,
-    formatIsoTime,
-    formatTime,
     formatWorkoutDayCompact,
     formatWorkoutDayLong,
     formatWorkoutDayShort
@@ -20,16 +18,6 @@ function unwrap(outcome: ReturnType<typeof addMuscleGroup>): Workout {
     return outcome.workout;
 }
 
-describe('formatTime', () => {
-    it('formatta ore e minuti a due cifre', () => {
-        expect(formatTime(new Date(2026, 0, 15, 8, 5))).toBe('08:05');
-    });
-
-    it('non applica alcuna conversione di fuso: usa ore e minuti locali', () => {
-        expect(formatTime(new Date(2026, 0, 15, 18, 40))).toBe('18:40');
-    });
-});
-
 describe('formatWorkoutDayShort e formatWorkoutDayLong', () => {
     it('interpretano la data locale senza slittamenti di giorno', () => {
         expect(formatWorkoutDayShort('2026-01-15')).toContain('15');
@@ -40,14 +28,6 @@ describe('formatWorkoutDayShort e formatWorkoutDayLong', () => {
 describe('formatWorkoutDayCompact', () => {
     it('interpreta la data locale senza slittamenti di giorno', () => {
         expect(formatWorkoutDayCompact('2026-01-15')).toContain('15');
-    });
-});
-
-describe('formatIsoTime', () => {
-    it('formatta ore e minuti locali a partire da un istante ISO', () => {
-        const isoTimestamp = new Date(2026, 0, 15, 18, 40).toISOString();
-
-        expect(formatIsoTime(isoTimestamp)).toBe('18:40');
     });
 });
 

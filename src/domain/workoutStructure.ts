@@ -105,6 +105,10 @@ export function updateWorkoutNotes(workout: Workout, notes: string): Workout {
     return { ...workout, notes };
 }
 
+export function updateWorkoutDate(workout: Workout, workoutDate: string): Workout {
+    return { ...workout, workoutDate };
+}
+
 export function updateExerciseSet(
         workout: Workout, groupId: string, exerciseId: string, setId: string,
         updater: (set: ExerciseSet) => ExerciseSet): Workout {

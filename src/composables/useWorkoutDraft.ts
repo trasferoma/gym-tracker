@@ -18,6 +18,7 @@ export interface UseWorkoutDraft {
     createDraft(workoutDate: string, source?: Workout): Promise<Workout>;
     flushPendingSave(): Promise<void>;
     updateNotes(notes: string): void;
+    updateDate(workoutDate: string): void;
     addMuscleGroup(name: string): void;
     removeMuscleGroup(groupId: string): void;
     reorderMuscleGroup(groupId: string, direction: ReorderDirection): void;
@@ -81,6 +82,12 @@ export function useWorkoutDraft(): UseWorkoutDraft {
     function updateNotes(notes: string): void {
         const current = requireLoadedWorkout();
         const next = structure.updateWorkoutNotes(current, notes);
+        commitWorkout(next);
+    }
+
+    function updateDate(workoutDate: string): void {
+        const current = requireLoadedWorkout();
+        const next = structure.updateWorkoutDate(current, workoutDate);
         commitWorkout(next);
     }
 
@@ -184,6 +191,7 @@ export function useWorkoutDraft(): UseWorkoutDraft {
         createDraft,
         flushPendingSave: () => autosave.flush(),
         updateNotes,
+        updateDate,
         addMuscleGroup,
         removeMuscleGroup,
         reorderMuscleGroup,

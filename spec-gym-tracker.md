@@ -42,7 +42,7 @@ La cardinalità 1..3 dei gruppi è verificata **solo al completamento**; in bozz
 - La copia porta gruppi, esercizi, ordine, numero e ordine delle serie, ripetizioni, pesi e note degli esercizi. **Non** copia data, stato `completed` dell'allenamento, spunte delle serie, note generali. Tutti gli elementi ricevono **nuovi UUID** e sono indipendenti dall'originale.
 
 *Dettaglio allenamento*
-- Pagina unica, **nessuna modale annidata**. Intestazione appiccicata con data, ora, stato della giornata e stato del salvataggio. Note della giornata.
+- Pagina unica, **nessuna modale annidata**. Intestazione appiccicata con data, stato della giornata e stato del salvataggio. **Nessun orario in interfaccia**, in nessuna schermata: `createdAt` resta nel modello per ordinamento e backup, ma non si mostra. **Data modificabile** con selettore `type="date"` e note della giornata, nella stessa scheda: chi prepara l'allenamento il giorno prima corregge la data dopo, e la modifica vale anche su una giornata completata. Data vuota o non valida: nessuna scrittura.
 - Sezioni gruppo **espanse per default**, collassabili; posizione mostrata; riordino con **pulsanti su/giù** (mai drag & drop) per gruppi ed esercizi; eliminazione con conferma generica; aggiunta gruppo disabilitata oltre 3.
 - Esercizi editabili inline con etichetta dello schema; aggiunta con campo nome e **suggerimenti dallo storico**, e rinomina di un esercizio già creato dalla stessa interfaccia (icona matita, nome corrente precompilato). I suggerimenti vengono **solo dal gruppo muscolare corrente**, dedotti per nome normalizzato e ordinati per uso più recente: se quel gruppo non ha storia l'elenco è vuoto e non compare. Nessun ripiego sui nomi degli altri gruppi — proporre un esercizio di schiena mentre si registra il petto è un difetto, non un aiuto.
 - Serie presentate come **registro con intestazioni di colonna** (`#`, Ripetizioni, Peso, spunta, elimina). `inputmode="numeric"` per le ripetizioni, `inputmode="decimal"` per il peso accettando **sia virgola sia punto**. Pulsante «duplica ultima serie» (nuovo UUID, spunta a `false`).
@@ -61,7 +61,7 @@ La cardinalità 1..3 dei gruppi è verificata **solo al completamento**; in bozz
 - Import: **validazione integrale di struttura e versione prima di toccare il database**, riepilogo mostrato all'utente, rifiuto dei file non validi senza alterare nulla. Poi due strade: **unione** per `id` (a parità di id vince l'`updatedAt` più recente; **l'unità di merge è il workout intero**, non i singoli campi o serie) oppure **sostituzione completa** con conferma, eseguita in una transazione Dexie. I dati correnti non vengono cancellati prima che il backup sia validato per intero.
 
 *Casi limite*
-- Più allenamenti nello stesso giorno **sono ammessi**: nessun indice unico su `workoutDate`, nessuna etichetta di sessione, nessuna ora inserita dall'utente; nello storico si distinguono per ora di creazione e gruppi.
+- Più allenamenti nello stesso giorno **sono ammessi**: nessun indice unico su `workoutDate`, nessuna etichetta di sessione, nessuna ora inserita dall'utente; nello storico si distinguono per gruppi e per ordine di creazione, che resta il criterio di ordinamento anche se l'ora non è più mostrata.
 - Ripetizioni non intere, `<= 0` o non numeriche: input rifiutato, resta il valore precedente. Peso negativo o non numerico: idem; `0` è valido.
 - Esercizio senza serie e gruppo senza esercizi: ammessi in bozza, bloccano il completamento.
 - Storico vuoto: stati vuoti espliciti in home, storico, statistiche e suggerimenti.

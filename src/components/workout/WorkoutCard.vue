@@ -4,7 +4,7 @@ import { computed } from 'vue';
 import AppIcon from '@/components/icon/AppIcon.vue';
 import { countWorkout } from '@/domain/workoutCounts';
 import type { Workout } from '@/domain/workout';
-import { formatCount, formatIsoTime, formatWorkoutDayShort } from '@/presentation/italianFormat';
+import { formatCount, formatWorkoutDayShort } from '@/presentation/italianFormat';
 
 const props = withDefaults(defineProps<{
     workout: Workout;
@@ -17,7 +17,6 @@ const emit = defineEmits<{ open: []; delete: [] }>();
 
 const counts = computed(() => countWorkout(props.workout));
 const dateLabel = computed(() => formatWorkoutDayShort(props.workout.workoutDate));
-const timeLabel = computed(() => formatIsoTime(props.workout.createdAt));
 </script>
 
 <template>
@@ -33,7 +32,6 @@ const timeLabel = computed(() => formatIsoTime(props.workout.createdAt));
       @keydown.enter="emit('open')"
     >
       <span class="wk-date">{{ dateLabel }}</span>
-      <span class="wk-time num">{{ timeLabel }}</span>
       <span class="wk-status">
         <span
           class="badge"
@@ -95,11 +93,6 @@ const timeLabel = computed(() => formatIsoTime(props.workout.createdAt));
     font-size: 15.5px;
     letter-spacing: -.01em;
     text-transform: capitalize;
-}
-
-.wk-time {
-    font-size: 12px;
-    color: var(--text-faint);
 }
 
 .wk-status {

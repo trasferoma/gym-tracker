@@ -18,10 +18,11 @@ import { useWorkoutDraft } from '@/composables/useWorkoutDraft';
 import { useWorkoutHistory } from '@/composables/useWorkoutHistory';
 import type { MuscleGroupName } from '@/domain/muscleGroups';
 import { checkCompletionEligibility } from '@/domain/workoutCompletion';
+import { isValidLocalDate } from '@/domain/localDate';
 import { availableMuscleGroupsToAdd } from '@/domain/workoutStructure';
 import { countMuscleGroup } from '@/domain/workoutCounts';
 import { MAX_COMPLETED_MUSCLE_GROUPS, type Exercise, type MuscleGroupWorkout } from '@/domain/workout';
-import { describeWorkoutDeletion, formatCount, formatIsoTime, formatWorkoutDayShort } from '@/presentation/italianFormat';
+import { describeWorkoutDeletion, formatCount, formatWorkoutDayShort } from '@/presentation/italianFormat';
 import { backTargetRoute } from '@/router';
 
 type PendingGroupOrExerciseDeletion =
@@ -85,14 +86,21 @@ const subtitleLabel = computed(() => {
     if (!workout.value) {
         return '';
     }
-    const timeLabel = formatIsoTime(workout.value.createdAt);
-    const statusLabel = workout.value.status === 'draft' ? 'bozza' : 'completato';
-    return `${timeLabel} · ${statusLabel}`;
+    return workout.value.status === 'draft' ? 'bozza' : 'completato';
 });
 
 const notesText = computed({
     get: () => workout.value?.notes ?? '',
     set: (value: string) => draft.updateNotes(value)
+});
+
+const workoutDateText = computed({
+    get: () => workout.value?.workoutDate ?? '',
+    set: (value: string) => {
+        if (isValidLocalDate(value)) {
+            draft.updateDate(value);
+        }
+    }
 });
 
 const availableGroups = computed<readonly MuscleGroupName[]>(() => (
@@ -206,6 +214,13 @@ const removalAction = useAsyncAction(() => {
 
   <template v-else-if="workout">
     <div class="card notes-box">
+      <label class="field date-field">
+        <span>Data dell'allenamento</span>
+        <input
+          v-model="workoutDateText"
+          type="date"
+        >
+      </label>
       <label class="field">
         <span>Note della giornata</span>
         <textarea
@@ -344,6 +359,10 @@ const removalAction = useAsyncAction(() => {
 .notes-box {
     padding: 12px 14px;
     margin-top: 8px;
+}
+
+.date-field {
+    margin-bottom: 14px;
 }
 
 .max-groups {
