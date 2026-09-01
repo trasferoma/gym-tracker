@@ -364,6 +364,28 @@ Rilettura mirata del processo principale su `useLoadingIndicator.ts`, alla terza
 
 **Verifiche dopo il secondo giro**, eseguite dal processo principale: `npm run lint` 0 errori, `npm run typecheck` pulito su entrambi gli scope, `npm test` **194 test verdi in 29 file**, `npm run build` riuscita con precache di 43 voci (460 KiB). Nessun byte di controllo in tutto `src/`.
 
+## Richieste successive dell'utente, dopo l'uso reale (terzo giro)
+
+`2026-09-01` — **marcatore di problema sulla singola serie**, una richiesta, evasa.
+
+L'utente vuole segnare, con un tocco, che l'esecuzione di una serie è andata male — ultima ripetizione non chiusa, oppure lontano dalla chiusura prevista. Tre stati ciclici: giallo, rosso, spento. Il significato dei due livelli resta suo e **non** viene spiegato nell'interfaccia.
+
+**Modello: campo opzionale, l'assenza è lo stato di default.** `ExerciseSet.issue?: SetIssueLevel | undefined` con `SetIssueLevel = 'warning' | 'critical'`, senza terzo letterale `'none'`. *Motivazione:* l'IndexedDB dell'utente contiene allenamenti reali e il progetto non ha alcuna infrastruttura di migrazione — `gymTrackerDatabase.ts` è a `version(1)` senza hook `upgrade`. Un campo obbligatorio avrebbe imposto di scrivere una migrazione Dexie per un marcatore decorativo: sproporzionato. L'unione esplicita con `undefined` non è ornamentale: con `exactOptionalPropertyTypes` un `issue?: SetIssueLevel` senza di essa rifiuta `{ ...set, issue: undefined }`, che è l'assegnazione con cui il terzo tocco spegne il marcatore.
+
+**Retrocompatibilità dei backup.** `requireOptionalSetIssueLevel` accetta campo assente, `'warning'` e `'critical'`, rifiuta tutto il resto con messaggio italiano. Verificato importando il backup reale da 21 allenamenti, che il campo non ha: validato senza errori. `parseExerciseSet` non aggiunge la chiave quando il marcatore è assente, quindi una serie senza marcatore non ne acquisisce uno passando per export e reimport.
+
+**Il ciclo è dominio, non interfaccia.** `nextSetIssueLevel` in `src/domain/setIssue.ts`, funzione pura accanto a `setInput.ts`. Nessuna funzione nuova in `workoutStructure.ts`: `cycleSetIssue` nel composable passa da `updateExerciseSet` con un updater, come `toggleSetCompleted`. La copia della struttura non riporta il marcatore, coerentemente con spunte e note: riguarda un'esecuzione passata.
+
+**Collocazione nell'interfaccia, scelta dall'utente fra due opzioni.** La cella `#` del numero di serie diventa il pulsante: mostra la cifra a marcatore spento, l'icona `warn` già esistente in `--warn` o `--danger` quando è acceso. La griglia di `SetRegister.vue` (`26px 1fr 1fr 38px 30px`) **non** è stata toccata. L'alternativa scartata era una sesta colonna, che su schermi da 360 px avrebbe portato i campi Ripetizioni e Peso da circa 77 a circa 67 px — con `102,5` kg il testo si stringe. Prezzo accettato: mentre il marcatore è acceso il numero della serie non si vede, e l'ordine delle righe lo rende comunque ovvio. L'area di tocco è estesa oltre i 26 px con lo stesso espediente `::after` e `max(100%, var(--tap))` già usato da `.set-ok`, e l'`aria-label` nomina il numero della serie e distingue i tre stati proprio perché la cifra non è più a schermo.
+
+**Il marcatore non entra nelle statistiche**: né nella chiave né nella metrica. `src/domain/statistics/` non è stato toccato.
+
+### Un rilievo della verifica, riportato e non applicato
+
+Il contrasto reciproco fra `--warn` e `--danger` è **1,18:1** in tema chiaro e **1,56:1** in scuro: i due livelli si distinguono quasi solo per tonalità, non per luminanza, quindi su un'icona da 15 px la differenza fra «attenzione» e «critico» è debole per un utente con daltonismo rosso-verde. Attenua il fatto che la distinzione fra «nessun problema» e «problema presente» passa dalla **forma** — cifra contro icona — e non dal colore. I token sono preesistenti e il vincolo vietava di introdurre colori nuovi: resta un'osservazione per una futura revisione di `tokens.css`, non una correzione fatta dentro questo diff.
+
+**Verifiche:** pipeline completa — scrittura con `clean-code-implementer`, verifica in seconda invocazione separata a contesto pulito. La verifica ha confermato il perimetro (nessun file fuori da quello dichiarato) e ha colmato un solo buco: il test sul valore non ammesso copriva la sola stringa, esteso a `null`, stringa vuota, numero e oggetto — il codice era già corretto, mancava la prova. `solid-srp-reviewer` **non invocato**: è vietato su codice non Java, e questo è TypeScript e Vue. `npm test` **213 test verdi in 31 file**, `npm run lint` pulito, `npm run typecheck` pulito.
+
 ## Esito finale
 
 `2026-08-26` — **implementazione completa**. Tutte e undici le fasi chiuse. Due criteri di accettazione su venti restano in attesa dell'utente, perché richiedono un occhio umano e un telefono: non sono lavoro mancante, sono verifiche non delegabili.

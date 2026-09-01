@@ -6,6 +6,7 @@ import * as structure from '@/domain/workoutStructure';
 import type { ReorderDirection } from '@/domain/workoutStructure';
 import { copyWorkoutStructure } from '@/domain/workoutCopy';
 import { createDraftWorkout } from '@/domain/workoutFactory';
+import { nextSetIssueLevel } from '@/domain/setIssue';
 import type { Workout, WorkoutOperationOutcome } from '@/domain/workout';
 import { findWorkoutById, saveWorkout } from '@/persistence/workoutRepository';
 
@@ -32,6 +33,7 @@ export interface UseWorkoutDraft {
     updateSetRepetitions(groupId: string, exerciseId: string, setId: string, repetitions: number): void;
     updateSetWeight(groupId: string, exerciseId: string, setId: string, weight: number): void;
     toggleSetCompleted(groupId: string, exerciseId: string, setId: string): void;
+    cycleSetIssue(groupId: string, exerciseId: string, setId: string): void;
     complete(): void;
     reopen(): void;
 }
@@ -170,6 +172,15 @@ export function useWorkoutDraft(): UseWorkoutDraft {
         commitWorkout(next);
     }
 
+    function cycleSetIssue(groupId: string, exerciseId: string, setId: string): void {
+        const current = requireLoadedWorkout();
+        const next = structure.updateExerciseSet(current, groupId, exerciseId, setId, (set) => {
+            const issue = nextSetIssueLevel(set.issue);
+            return { ...set, issue };
+        });
+        commitWorkout(next);
+    }
+
     function complete(): void {
         const current = requireLoadedWorkout();
         const outcome = completion.completeWorkout(current);
@@ -205,6 +216,7 @@ export function useWorkoutDraft(): UseWorkoutDraft {
         updateSetRepetitions,
         updateSetWeight,
         toggleSetCompleted,
+        cycleSetIssue,
         complete,
         reopen
     };

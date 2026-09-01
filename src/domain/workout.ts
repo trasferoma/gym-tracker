@@ -1,3 +1,5 @@
+import type { SetIssueLevel } from './setIssue';
+
 export type WorkoutStatus = 'draft' | 'completed';
 
 export interface ExerciseSet {
@@ -7,6 +9,7 @@ export interface ExerciseSet {
     readonly weight: number;
     readonly completed: boolean;
     readonly notes: string;
+    readonly issue?: SetIssueLevel | undefined;
 }
 
 export interface Exercise {

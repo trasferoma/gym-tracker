@@ -112,6 +112,36 @@ describe('note, ripetizioni, peso e spunta di una serie', () => {
         const set = draft.workout.value?.muscleGroups[0]?.exercises[0]?.sets[0];
         expect(set).toMatchObject({ repetitions: 8, weight: 22.5, completed: true });
     });
+
+    it('cicla il marcatore di problema di una serie fra assente, warning e critical', async () => {
+        const seeded = await seedWorkout({
+            muscleGroups: [{
+                id: 'group-petto',
+                name: 'Petto',
+                position: 0,
+                exercises: [{
+                    id: 'exercise-panca',
+                    name: 'Panca piana',
+                    position: 0,
+                    notes: '',
+                    sets: [{ id: 'set-1', position: 0, repetitions: 10, weight: 20, completed: false, notes: '' }]
+                }]
+            }]
+        });
+        const draft = useWorkoutDraft();
+        await draft.load(seeded.id);
+
+        draft.cycleSetIssue('group-petto', 'exercise-panca', 'set-1');
+        expect(draft.workout.value?.muscleGroups[0]?.exercises[0]?.sets[0]?.issue).toBe('warning');
+
+        draft.cycleSetIssue('group-petto', 'exercise-panca', 'set-1');
+        expect(draft.workout.value?.muscleGroups[0]?.exercises[0]?.sets[0]?.issue).toBe('critical');
+
+        draft.cycleSetIssue('group-petto', 'exercise-panca', 'set-1');
+        await draft.flushPendingSave();
+
+        expect(draft.workout.value?.muscleGroups[0]?.exercises[0]?.sets[0]?.issue).toBe(undefined);
+    });
 });
 
 async function seedWorkoutWithExistingExerciseAndSet(): Promise<Workout> {

@@ -47,6 +47,24 @@ describe('copyWorkoutStructure', () => {
         expect(copy.muscleGroups[0]!.exercises[0]!.sets.every((set) => !set.completed)).toBe(true);
     });
 
+    it('non copia il marcatore di problema di una serie', () => {
+        const source = buildSourceWorkout();
+        const sourceWithIssue = {
+            ...source,
+            muscleGroups: [{
+                ...source.muscleGroups[0]!,
+                exercises: [{
+                    ...source.muscleGroups[0]!.exercises[0]!,
+                    sets: [{ ...source.muscleGroups[0]!.exercises[0]!.sets[0]!, issue: 'critical' as const }]
+                }]
+            }]
+        };
+
+        const copy = copyWorkoutStructure(sourceWithIssue, '2026-01-20');
+
+        expect(copy.muscleGroups[0]!.exercises[0]!.sets[0]).not.toHaveProperty('issue');
+    });
+
     it('riporta gruppi, esercizi, ordine, numero e ordine delle serie, ripetizioni, pesi e note degli esercizi', () => {
         const source = buildSourceWorkout();
 

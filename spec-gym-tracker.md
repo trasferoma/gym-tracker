@@ -20,7 +20,7 @@ Un gruppo muscolare **non** contiene serie: contiene esercizi, e ogni esercizio 
 | `Workout` | `id` (UUID), `workoutDate` (data **locale** `YYYY-MM-DD`, mai un `Date` UTC), `status` (`draft` \| `completed`), `notes?`, `muscleGroups` (lista ordinata), `createdAt`, `updatedAt` (ISO 8601) |
 | `MuscleGroupWorkout` | `id`, `name` (**nome italiano del gruppo salvato nel record**: stringa, non un id inglese, non una FK), `position`, `exercises` (lista ordinata) |
 | `Exercise` | `id`, `name`, `position`, `notes?`, `sets` (lista ordinata) |
-| `ExerciseSet` | `id`, `position`, `repetitions` (intero > 0), `weight` (kg, decimali ammessi, **0 valido** per il corpo libero), `completed`, `notes?` |
+| `ExerciseSet` | `id`, `position`, `repetitions` (intero > 0), `weight` (kg, decimali ammessi, **0 valido** per il corpo libero), `completed`, `notes?`, `issue?` (marcatore di problema nell'esecuzione a tre stati ciclici: assente → `warning` → `critical` → assente; assente = nessun problema, campo assente nei backup precedenti alla funzionalità) |
 
 La cardinalità 1..3 dei gruppi è verificata **solo al completamento**; in bozza qualsiasi numero è ammesso e salvabile. La cardinalità 1..N di esercizi e serie è verificata anch'essa al completamento.
 
@@ -39,19 +39,19 @@ La cardinalità 1..3 dei gruppi è verificata **solo al completamento**; in bozz
 *Nuovo allenamento*
 - Campo data (default oggi); **avviso non bloccante** quando in quella data esistono già allenamenti («ne verrà creato un altro, nulla viene sovrascritto»); scelta della giornata da copiare fra «Parti da zero» e le **ultime 20 giornate** dalla più recente, bozze incluse.
 - Alla conferma la **bozza viene creata subito** e si apre il dettaglio. Nessuna modalità «non ancora salvato».
-- La copia porta gruppi, esercizi, ordine, numero e ordine delle serie, ripetizioni, pesi e note degli esercizi. **Non** copia data, stato `completed` dell'allenamento, spunte delle serie, note generali. Tutti gli elementi ricevono **nuovi UUID** e sono indipendenti dall'originale.
+- La copia porta gruppi, esercizi, ordine, numero e ordine delle serie, ripetizioni, pesi e note degli esercizi. **Non** copia data, stato `completed` dell'allenamento, spunte delle serie, note generali, marcatore di problema delle serie. Tutti gli elementi ricevono **nuovi UUID** e sono indipendenti dall'originale.
 
 *Dettaglio allenamento*
 - Pagina unica, **nessuna modale annidata**. Intestazione appiccicata con data, stato della giornata e stato del salvataggio. **Nessun orario in interfaccia**, in nessuna schermata: `createdAt` resta nel modello per ordinamento e backup, ma non si mostra. **Data modificabile** con selettore `type="date"` e note della giornata, nella stessa scheda: chi prepara l'allenamento il giorno prima corregge la data dopo, e la modifica vale anche su una giornata completata. Data vuota o non valida: nessuna scrittura.
 - Sezioni gruppo **espanse per default**, collassabili; posizione mostrata; riordino con **pulsanti su/giù** (mai drag & drop) per gruppi ed esercizi; eliminazione con conferma generica; aggiunta gruppo disabilitata oltre 3.
 - Esercizi editabili inline con etichetta dello schema; aggiunta con campo nome e **suggerimenti dallo storico**, e rinomina di un esercizio già creato dalla stessa interfaccia (icona matita, nome corrente precompilato). I suggerimenti vengono **solo dal gruppo muscolare corrente**, dedotti per nome normalizzato e ordinati per uso più recente: se quel gruppo non ha storia l'elenco è vuoto e non compare. Nessun ripiego sui nomi degli altri gruppi — proporre un esercizio di schiena mentre si registra il petto è un difetto, non un aiuto.
-- Serie presentate come **registro con intestazioni di colonna** (`#`, Ripetizioni, Peso, spunta, elimina). `inputmode="numeric"` per le ripetizioni, `inputmode="decimal"` per il peso accettando **sia virgola sia punto**. Pulsante «duplica ultima serie» (nuovo UUID, spunta a `false`).
+- Serie presentate come **registro con intestazioni di colonna** (`#`, Ripetizioni, Peso, spunta, elimina). La cella `#` è anche il pulsante del marcatore di problema a tre stati ciclici (nessuno → attenzione → critico → nessuno), il cui significato è noto solo all'utente e non va spiegato in interfaccia. `inputmode="numeric"` per le ripetizioni, `inputmode="decimal"` per il peso accettando **sia virgola sia punto**. Pulsante «duplica ultima serie» (nuovo UUID, spunta a `false`).
 - **Autosave unico** con debounce ~500 ms su qualsiasi modifica, con **flush forzato** su blur del campo, navigazione e `visibilitychange`. Tre stati visibili: salvataggio in corso, salvato, errore.
 - Completamento: consentito solo da 1 a 3 gruppi, ciascuno con almeno un esercizio e almeno una serie valida; altrimenti avviso non bloccante e pulsante disabilitato. Il completamento non richiede che le serie siano spuntate.
 - Scorciatoia dal singolo esercizio alla vista finale delle statistiche (posizione, gruppo, esercizio e schema sono noti dal contesto). Se lo schema non ha storia, dirlo invece di mostrare una tabella vuota.
 
 *Statistiche*
-- Chiave: `posizione del gruppo nella giornata × gruppo × esercizio × schema delle ripetizioni`. Solo allenamenti `status === 'completed'` e, dentro questi, **tutte** le serie, indipendentemente dal flag `completed` della singola serie.
+- Chiave: `posizione del gruppo nella giornata × gruppo × esercizio × schema delle ripetizioni`. Solo allenamenti `status === 'completed'` e, dentro questi, **tutte** le serie, indipendentemente dal flag `completed` della singola serie. Il marcatore di problema di una serie **non** entra nella chiave né nella metrica.
 - Percorso a quattro passi **posizione → gruppo → esercizio → schema**, con breadcrumb che permette di risalire, e poi la vista finale. Ogni passo mostra **solo ciò che esiste nello storico**, con i conteggi. Ricerca per nome al passo degli esercizi. Nessun filtro nasconde gli schemi con una sola sessione: si mostra il conteggio e si avvisa che non c'è progressione.
 - Vista finale: **tabella** con righe = sessioni (la più recente in cima) e colonne `S1…Sn` con il peso, più una **sparkline SVG scritta a mano** con n linee sovrapposte, una per posizione di serie, in ordine cronologico da sinistra a destra. Le ripetizioni non si ripetono su ogni riga: sono fissate dallo schema.
 
@@ -115,7 +115,7 @@ La cardinalità 1..3 dei gruppi è verificata **solo al completamento**; in bozz
 3. La gerarchia è rispettata: le serie appartengono all'esercizio e non al gruppo; salvataggio e rilettura restituiscono la stessa struttura annidata con le stesse `position` contigue.
 4. Nello stesso esercizio coesistono serie con ripetizioni e pesi diversi, incluso `weight = 0`; `repetitions <= 0` o non intero è rifiutato.
 5. La copia da giornata precedente produce **nuovi UUID a tutti e quattro i livelli** e nessun identificatore coincide con l'originale.
-6. La copia riporta gruppi, esercizi, ordine, numero e ordine delle serie, ripetizioni, pesi e note degli esercizi, e **non** riporta data, stato `completed` dell'allenamento, spunte delle serie e note generali.
+6. La copia riporta gruppi, esercizi, ordine, numero e ordine delle serie, ripetizioni, pesi e note degli esercizi, e **non** riporta data, stato `completed` dell'allenamento, spunte delle serie, note generali e marcatore di problema delle serie.
 7. L'esportazione produce un JSON con `formatVersion: 1`, istante di esportazione e l'elenco completo degli allenamenti, con nome file `gym-tracker-backup-YYYY-MM-DD.json`.
 8. Un backup valido supera la validazione e produce il riepilogo (totale nel file, nuovi, già presenti, più recenti del locale) **senza scrivere nel database**.
 9. Un backup non valido (versione ignota, struttura errata, campo mancante, gerarchia violata) è rifiutato e il contenuto del database resta identico.
@@ -125,7 +125,7 @@ La cardinalità 1..3 dei gruppi è verificata **solo al completamento**; in bozz
 13. Due giornate con sequenze di gruppi diverse ma gruppo nella stessa posizione producono la **stessa** chiave statistica; la stessa combinazione in posizione diversa produce chiavi **diverse**.
 14. Schemi con la stessa tupla ordinata coincidono; `12-12-10-10` e `10-10-12-12` sono diversi, come `4x6` e `3x8`.
 15. L'etichetta dello schema è `NxR` con ripetizioni uniformi e la tupla con trattini altrimenti.
-16. Le statistiche considerano solo `status === 'completed'` e, dentro quelle giornate, **tutte** le serie indipendentemente dal flag `completed`; le funzioni non scrivono nulla.
+16. Le statistiche considerano solo `status === 'completed'` e, dentro quelle giornate, **tutte** le serie indipendentemente dal flag `completed`; il marcatore di problema di una serie non entra né nella chiave né nella metrica; le funzioni non scrivono nulla.
 17. Le sei schermate riproducono layout, gerarchia visiva e testi italiani del prototipo, con tema scuro di default e chiaro automatico via `prefers-color-scheme`, su token CSS.
 18. L'applicazione è installabile su Android e funziona offline dopo il primo caricamento; l'aggiornamento disponibile appare come barra discreta e ignorabile; il service worker non tenta di cachare IndexedDB.
 19. Nessuna dipendenza vietata nel `package.json`, nessun `localStorage` per i dati applicativi, nessun accesso a Dexie dai componenti; `vue-tsc`, ESLint e la suite Vitest sono verdi.

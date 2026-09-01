@@ -1,4 +1,5 @@
 import { isValidLocalDate } from '@/domain/localDate';
+import type { SetIssueLevel } from '@/domain/setIssue';
 import type { Exercise, ExerciseSet, MuscleGroupWorkout, Workout, WorkoutStatus } from '@/domain/workout';
 import { BACKUP_FORMAT_VERSION, type BackupFile } from './backupFormat';
 
@@ -82,7 +83,10 @@ function parseExerciseSet(rawSet: unknown, exerciseLabel: string, index: number)
     const weight = requireNonNegativeNumber(set.weight, `${label}: weight`);
     const completed = requireBoolean(set.completed, `${label}: completed`);
     const notes = requireString(set.notes, `${label}: notes`);
-    return { id, position, repetitions, weight, completed, notes };
+    const issue = requireOptionalSetIssueLevel(set.issue, `${label}: issue`);
+    return issue === undefined
+            ? { id, position, repetitions, weight, completed, notes }
+            : { id, position, repetitions, weight, completed, notes, issue };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -162,6 +166,16 @@ function requireWorkoutStatus(value: unknown, label: string): WorkoutStatus {
         fail(`${label} deve essere "draft" o "completed".`);
     }
     return text;
+}
+
+function requireOptionalSetIssueLevel(value: unknown, label: string): SetIssueLevel | undefined {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value !== 'warning' && value !== 'critical') {
+        fail(`${label} deve essere assente, "warning" o "critical".`);
+    }
+    return value;
 }
 
 function requireExactFormatVersion(value: unknown): void {

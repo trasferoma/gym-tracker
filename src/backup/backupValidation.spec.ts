@@ -132,4 +132,49 @@ describe('validateBackupFile', () => {
 
         expect(outcome.valid).toBe(true);
     });
+
+    it('accetta una serie senza il campo issue, come nei backup precedenti alla funzionalità', () => {
+        const workout = buildValidWorkout();
+
+        const outcome = validateBackupFile(buildBackupFilePayload([workout]));
+
+        expect(outcome.valid).toBe(true);
+        if (outcome.valid) {
+            expect(outcome.backup.workouts[0]!.muscleGroups[0]!.exercises[0]!.sets[0]).not.toHaveProperty('issue');
+        }
+    });
+
+    it.each(['warning', 'critical'] as const)('accetta una serie con issue "%s"', (issue) => {
+        const workout = buildValidWorkout();
+        const setWithIssue = { ...workout.muscleGroups[0]!.exercises[0]!.sets[0]!, issue };
+        const exerciseWithIssue = { ...workout.muscleGroups[0]!.exercises[0]!, sets: [setWithIssue] };
+        const groupWithIssue = { ...workout.muscleGroups[0]!, exercises: [exerciseWithIssue] };
+
+        const outcome = validateBackupFile(buildBackupFilePayload([{ ...workout, muscleGroups: [groupWithIssue] }]));
+
+        expect(outcome.valid).toBe(true);
+        if (outcome.valid) {
+            expect(outcome.backup.workouts[0]!.muscleGroups[0]!.exercises[0]!.sets[0]!.issue).toBe(issue);
+        }
+    });
+
+    it.each([
+        ['una stringa non ammessa', 'grave'],
+        ['null', null],
+        ['una stringa vuota', ''],
+        ['un numero', 1],
+        ['un oggetto', { livello: 'warning' }]
+    ])('rifiuta una serie con un valore di issue non ammesso: %s', (_description, issue) => {
+        const workout = buildValidWorkout();
+        const invalidSet = { ...workout.muscleGroups[0]!.exercises[0]!.sets[0]!, issue };
+        const invalidExercise = { ...workout.muscleGroups[0]!.exercises[0]!, sets: [invalidSet] };
+        const invalidGroup = { ...workout.muscleGroups[0]!, exercises: [invalidExercise] };
+
+        const outcome = validateBackupFile(buildBackupFilePayload([{ ...workout, muscleGroups: [invalidGroup] }]));
+
+        expect(outcome.valid).toBe(false);
+        if (!outcome.valid) {
+            expect(outcome.reason).toContain('issue');
+        }
+    });
 });

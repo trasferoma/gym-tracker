@@ -4,6 +4,7 @@ import { ref } from 'vue';
 import AppIcon from '@/components/icon/AppIcon.vue';
 import type { UseWorkoutDraft } from '@/composables/useWorkoutDraft';
 import { parseRepetitionsInput, parseWeightInput } from '@/domain/setInput';
+import type { SetIssueLevel } from '@/domain/setIssue';
 import type { ExerciseSet } from '@/domain/workout';
 import { formatWeight } from '@/presentation/italianFormat';
 
@@ -49,6 +50,20 @@ function toggleCompleted(): void {
     props.draft.toggleSetCompleted(props.groupId, props.exerciseId, props.set.id);
 }
 
+function cycleIssue(): void {
+    props.draft.cycleSetIssue(props.groupId, props.exerciseId, props.set.id);
+}
+
+function describeIssue(issue: SetIssueLevel | undefined): string {
+    if (issue === 'warning') {
+        return `Serie ${props.index}: problema segnalato, livello attenzione`;
+    }
+    if (issue === 'critical') {
+        return `Serie ${props.index}: problema segnalato, livello critico`;
+    }
+    return `Serie ${props.index}: nessun problema segnalato`;
+}
+
 function removeSet(): void {
     props.draft.removeExerciseSet(props.groupId, props.exerciseId, props.set.id);
 }
@@ -56,9 +71,21 @@ function removeSet(): void {
 
 <template>
   <div class="sets-row">
-    <div class="set-n">
-      {{ index }}
-    </div>
+    <button
+      type="button"
+      class="set-n"
+      :class="{ 'set-n--warning': set.issue === 'warning', 'set-n--critical': set.issue === 'critical' }"
+      :aria-label="describeIssue(set.issue)"
+      @click="cycleIssue"
+    >
+      <AppIcon
+        v-if="set.issue"
+        name="warn"
+      />
+      <template v-else>
+        {{ index }}
+      </template>
+    </button>
     <div class="set-in">
       <input
         v-model="repetitionsText"
@@ -109,11 +136,41 @@ function removeSet(): void {
 
 <style scoped>
 .set-n {
-    text-align: center;
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 42px;
+    padding: 0;
     font-size: 12.5px;
     font-weight: 700;
     color: var(--text-faint);
     font-variant-numeric: tabular-nums;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-2);
+}
+
+.set-n::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, var(--tap));
+    height: max(100%, var(--tap));
+    transform: translate(-50%, -50%);
+}
+
+.set-n svg {
+    width: 15px;
+    height: 15px;
+}
+
+.set-n--warning {
+    color: var(--warn);
+}
+
+.set-n--critical {
+    color: var(--danger);
 }
 
 .set-in {
