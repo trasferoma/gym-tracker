@@ -37,6 +37,18 @@ export function formatWeight(weight: number): string {
     return Number.isInteger(weight) ? String(weight) : String(weight).replace('.', ',');
 }
 
+export function formatWeightDifference(difference: number): string {
+    const absoluteDifference = Math.abs(difference);
+    const magnitude = formatWeight(absoluteDifference);
+    if (difference > 0) {
+        return `+${magnitude}`;
+    }
+    if (difference < 0) {
+        return `-${magnitude}`;
+    }
+    return magnitude;
+}
+
 export function formatCount(count: number, singular: string, plural: string): string {
     const label = count === 1 ? singular : plural;
     return `${count} ${label}`;

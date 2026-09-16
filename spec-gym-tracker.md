@@ -53,7 +53,7 @@ La cardinalità 1..3 dei gruppi è verificata **solo al completamento**; in bozz
 *Statistiche*
 - Chiave: `posizione del gruppo nella giornata × gruppo × esercizio × schema delle ripetizioni`. Solo allenamenti `status === 'completed'` e, dentro questi, **tutte** le serie, indipendentemente dal flag `completed` della singola serie. Il marcatore di problema di una serie **non** entra nella chiave né nella metrica.
 - Percorso a quattro passi **posizione → gruppo → esercizio → schema**, con breadcrumb che permette di risalire, e poi la vista finale. Ogni passo mostra **solo ciò che esiste nello storico**, con i conteggi. Ricerca per nome al passo degli esercizi. Nessun filtro nasconde gli schemi con una sola sessione: si mostra il conteggio e si avvisa che non c'è progressione.
-- Vista finale: **tabella** con righe = sessioni (la più recente in cima) e colonne `S1…Sn` con il peso, più una **sparkline SVG scritta a mano** con n linee sovrapposte, una per posizione di serie, in ordine cronologico da sinistra a destra. Le ripetizioni non si ripetono su ogni riga: sono fissate dallo schema.
+- Vista finale: una **card per posizione di serie** (`S1…Sn`), ciascuna con una **sparkline SVG scritta a mano** della sola serie in ordine cronologico da sinistra a destra — scala del peso comune a tutte le card, così restano confrontabili — e, a fianco, il peso dell'ultima sessione con la variazione rispetto alla precedente. Sotto le card, la **tabella** con righe = sessioni (la più recente in cima) e colonne `S1…Sn` con il peso. Le ripetizioni non si ripetono su ogni riga: sono fissate dallo schema.
 
 *Dati e backup*
 - Stato dello storage persistente, data dell'ultimo backup, numero totale di allenamenti (ed esercizi/serie), esportazione, importazione.

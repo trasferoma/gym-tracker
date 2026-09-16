@@ -3,7 +3,7 @@ import { computed, onMounted } from 'vue';
 
 import StatBreadcrumb from '@/components/statistics/StatBreadcrumb.vue';
 import StatDrillItem from '@/components/statistics/StatDrillItem.vue';
-import StatSparkline from '@/components/statistics/StatSparkline.vue';
+import StatSetProgressList from '@/components/statistics/StatSetProgressList.vue';
 import StatWeightTable from '@/components/statistics/StatWeightTable.vue';
 import EmptyState from '@/components/feedback/EmptyState.vue';
 import InfoBanner from '@/components/feedback/InfoBanner.vue';
@@ -139,7 +139,7 @@ const showNoStatisticsEmptyState = computed(() => (
         >
           Una sola sessione con questo schema: non c'è ancora una progressione da mostrare.
         </InfoBanner>
-        <StatSparkline :sessions="path.sessions.value" />
+        <StatSetProgressList :sessions="path.sessions.value" />
         <StatWeightTable :sessions="path.sessions.value" />
       </template>
     </template>
