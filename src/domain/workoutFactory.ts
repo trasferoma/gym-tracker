@@ -1,8 +1,9 @@
 import { generateId } from './identity';
-import type { Exercise, ExerciseSet, MuscleGroupWorkout, Workout } from './workout';
+import type { Exercise, ExerciseCluster, ExerciseSet, MuscleGroupWorkout, Workout } from './workout';
 
 const DEFAULT_SET_REPETITIONS = 10;
 const DEFAULT_SET_WEIGHT = 0;
+const FIRST_EXERCISE_POSITION = 0;
 
 export function createDraftWorkout(workoutDate: string): Workout {
     const timestamp = new Date().toISOString();
@@ -22,7 +23,18 @@ export function createMuscleGroupWorkout(name: string, position: number): Muscle
         id: generateId(),
         name,
         position,
-        exercises: []
+        clusters: []
+    };
+}
+
+export function createExerciseCluster(exercise: Exercise, position: number): ExerciseCluster {
+    return {
+        id: generateId(),
+        kind: 'single',
+        position,
+        restAfterRoundSeconds: 0,
+        restBetweenExercisesSeconds: 0,
+        exercises: [{ ...exercise, position: FIRST_EXERCISE_POSITION }]
     };
 }
 

@@ -1,15 +1,19 @@
+import * as exerciseClusters from './exerciseClusters';
 import { MUSCLE_GROUPS, type MuscleGroupName } from './muscleGroups';
-import { createExercise, createExerciseSet, createMuscleGroupWorkout } from './workoutFactory';
+import { reindexPositions, reorderByPosition, type ReorderDirection } from './positions';
+import { createExercise, createExerciseCluster, createExerciseSet, createMuscleGroupWorkout } from './workoutFactory';
 import {
     MIN_COMPLETED_MUSCLE_GROUPS,
     type Exercise,
+    type ExerciseCluster,
+    type ExerciseClusterKind,
     type ExerciseSet,
     type MuscleGroupWorkout,
     type Workout,
     type WorkoutOperationOutcome
 } from './workout';
 
-export type ReorderDirection = 'up' | 'down';
+export type { ReorderDirection };
 
 export function availableMuscleGroupsToAdd(workout: Workout): readonly MuscleGroupName[] {
     const usedNames = new Set(workout.muscleGroups.map((group) => group.name));
@@ -48,9 +52,10 @@ export function reorderMuscleGroup(workout: Workout, groupId: string, direction:
 
 export function addExercise(workout: Workout, groupId: string, name: string): Workout {
     return replaceMuscleGroup(workout, groupId, (group) => {
-        const newExercise = createExercise(name, group.exercises.length);
-        const exercises = reindexPositions([...group.exercises, newExercise]);
-        return withExercises(group, exercises);
+        const newExercise = createExercise(name, 0);
+        const newCluster = createExerciseCluster(newExercise, group.clusters.length);
+        const clusters = reindexPositions([...group.clusters, newCluster]);
+        return withClusters(group, clusters);
     });
 }
 
@@ -59,19 +64,58 @@ export function renameExercise(workout: Workout, groupId: string, exerciseId: st
 }
 
 export function removeExercise(workout: Workout, groupId: string, exerciseId: string): Workout {
-    return replaceMuscleGroup(workout, groupId, (group) => {
-        findExercise(group, exerciseId);
-        const exercises = reindexPositions(group.exercises.filter((exercise) => exercise.id !== exerciseId));
-        return withExercises(group, exercises);
-    });
+    return replaceClusters(workout, groupId, (clusters) => (
+        exerciseClusters.removeExerciseFromClusters(clusters, exerciseId)
+    ));
 }
 
 export function reorderExercise(
         workout: Workout, groupId: string, exerciseId: string, direction: ReorderDirection): Workout {
-    return replaceMuscleGroup(workout, groupId, (group) => {
-        const exercises = reorderByPosition(group.exercises, exerciseId, direction);
-        return withExercises(group, exercises);
-    });
+    return replaceClusters(workout, groupId, (clusters) => (
+        exerciseClusters.reorderExerciseWithinCluster(clusters, exerciseId, direction)
+    ));
+}
+
+export function linkClusterToNext(workout: Workout, groupId: string, clusterId: string): Workout {
+    return replaceClusters(workout, groupId, (clusters) => exerciseClusters.linkClusterToNext(clusters, clusterId));
+}
+
+export function detachExercise(workout: Workout, groupId: string, exerciseId: string): Workout {
+    return replaceClusters(workout, groupId, (clusters) => exerciseClusters.detachExercise(clusters, exerciseId));
+}
+
+export function changeClusterKind(
+        workout: Workout, groupId: string, clusterId: string, kind: ExerciseClusterKind): Workout {
+    return replaceClusters(workout, groupId, (clusters) => (
+        exerciseClusters.changeClusterKind(clusters, clusterId, kind)
+    ));
+}
+
+export function updateClusterRestAfterRound(
+        workout: Workout, groupId: string, clusterId: string, seconds: number): Workout {
+    return replaceClusters(workout, groupId, (clusters) => (
+        exerciseClusters.updateClusterRestAfterRound(clusters, clusterId, seconds)
+    ));
+}
+
+export function updateClusterRestBetweenExercises(
+        workout: Workout, groupId: string, clusterId: string, seconds: number): Workout {
+    return replaceClusters(workout, groupId, (clusters) => (
+        exerciseClusters.updateClusterRestBetweenExercises(clusters, clusterId, seconds)
+    ));
+}
+
+export function reorderCluster(
+        workout: Workout, groupId: string, clusterId: string, direction: ReorderDirection): Workout {
+    return replaceClusters(workout, groupId, (clusters) => (
+        exerciseClusters.reorderCluster(clusters, clusterId, direction)
+    ));
+}
+
+export function addExerciseToCluster(workout: Workout, groupId: string, clusterId: string, name: string): Workout {
+    return replaceClusters(workout, groupId, (clusters) => (
+        exerciseClusters.addExerciseToCluster(clusters, clusterId, name)
+    ));
 }
 
 export function addExerciseSet(workout: Workout, groupId: string, exerciseId: string): Workout {
@@ -96,7 +140,8 @@ export function duplicateLastExerciseSet(workout: Workout, groupId: string, exer
 
 export function removeExerciseSet(workout: Workout, groupId: string, exerciseId: string, setId: string): Workout {
     return replaceExerciseWithin(workout, groupId, exerciseId, (exercise) => {
-        const sets = reindexPositions(exercise.sets.filter((set) => set.id !== setId));
+        const remainingSets = exercise.sets.filter((set) => set.id !== setId);
+        const sets = reindexPositions(remainingSets);
         return withSets(exercise, sets);
     });
 }
@@ -118,43 +163,12 @@ export function updateExerciseSet(
     });
 }
 
-function reindexPositions<T extends { readonly position: number }>(items: readonly T[]): T[] {
-    return items.map((item, index) => ({ ...item, position: index }));
-}
-
-function reorderByPosition<T extends { readonly id: string; readonly position: number }>(
-        items: readonly T[], id: string, direction: ReorderDirection): T[] {
-    const currentIndex = items.findIndex((item) => item.id === id);
-    if (currentIndex < 0) {
-        throw new Error(`Elemento non trovato: ${id}`);
-    }
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    const isOutOfBounds = targetIndex < 0 || targetIndex >= items.length;
-    if (isOutOfBounds) {
-        return [...items];
-    }
-    const swapped = [...items];
-    const currentItem = swapped[currentIndex]!;
-    const targetItem = swapped[targetIndex]!;
-    swapped[currentIndex] = targetItem;
-    swapped[targetIndex] = currentItem;
-    return reindexPositions(swapped);
-}
-
 function findMuscleGroup(workout: Workout, groupId: string): MuscleGroupWorkout {
     const group = workout.muscleGroups.find((candidate) => candidate.id === groupId);
     if (!group) {
         throw new Error(`Gruppo muscolare non trovato: ${groupId}`);
     }
     return group;
-}
-
-function findExercise(group: MuscleGroupWorkout, exerciseId: string): Exercise {
-    const exercise = group.exercises.find((candidate) => candidate.id === exerciseId);
-    if (!exercise) {
-        throw new Error(`Esercizio non trovato: ${exerciseId}`);
-    }
-    return exercise;
 }
 
 function withMuscleGroups(workout: Workout, muscleGroups: readonly MuscleGroupWorkout[]): Workout {
@@ -172,19 +186,17 @@ function replaceMuscleGroup(
     return withMuscleGroups(workout, muscleGroups);
 }
 
-function withExercises(group: MuscleGroupWorkout, exercises: readonly Exercise[]): MuscleGroupWorkout {
-    return { ...group, exercises };
+function withClusters(group: MuscleGroupWorkout, clusters: readonly ExerciseCluster[]): MuscleGroupWorkout {
+    return { ...group, clusters };
 }
 
-function replaceExercise(
-        group: MuscleGroupWorkout, exerciseId: string,
-        updater: (exercise: Exercise) => Exercise): MuscleGroupWorkout {
-    const exercise = findExercise(group, exerciseId);
-    const updatedExercise = updater(exercise);
-    const exercises = group.exercises.map((candidate) => (
-        candidate.id === exerciseId ? updatedExercise : candidate
-    ));
-    return withExercises(group, exercises);
+function replaceClusters(
+        workout: Workout, groupId: string,
+        updater: (clusters: readonly ExerciseCluster[]) => readonly ExerciseCluster[]): Workout {
+    return replaceMuscleGroup(workout, groupId, (group) => {
+        const clusters = updater(group.clusters);
+        return withClusters(group, clusters);
+    });
 }
 
 function withSets(exercise: Exercise, sets: readonly ExerciseSet[]): Exercise {
@@ -194,5 +206,7 @@ function withSets(exercise: Exercise, sets: readonly ExerciseSet[]): Exercise {
 function replaceExerciseWithin(
         workout: Workout, groupId: string, exerciseId: string,
         updater: (exercise: Exercise) => Exercise): Workout {
-    return replaceMuscleGroup(workout, groupId, (group) => replaceExercise(group, exerciseId, updater));
+    return replaceClusters(workout, groupId, (clusters) => (
+        exerciseClusters.updateExerciseInClusters(clusters, exerciseId, updater)
+    ));
 }

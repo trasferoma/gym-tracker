@@ -1,6 +1,15 @@
 import { isValidLocalDate } from '@/domain/localDate';
 import type { SetIssueLevel } from '@/domain/setIssue';
-import type { Exercise, ExerciseSet, MuscleGroupWorkout, Workout, WorkoutStatus } from '@/domain/workout';
+import { checkClusterInvariants } from '@/domain/exerciseClusters';
+import type {
+    Exercise,
+    ExerciseCluster,
+    ExerciseClusterKind,
+    ExerciseSet,
+    MuscleGroupWorkout,
+    Workout,
+    WorkoutStatus
+} from '@/domain/workout';
 import { BACKUP_FORMAT_VERSION, type BackupFile } from './backupFormat';
 
 export type BackupValidationResult =
@@ -55,10 +64,28 @@ function parseMuscleGroup(rawGroup: unknown, workoutLabel: string, index: number
     const id = requireNonEmptyString(group.id, `${label}: id`);
     const name = requireNonEmptyString(group.name, `${label}: name`);
     const position = requireFiniteNumber(group.position, `${label}: position`);
-    const rawExercises = requireArray(group.exercises, `${label}: exercises`);
+    const rawClusters = requireArray(group.clusters, `${label}: clusters`);
+    const clusters = rawClusters.map((rawCluster, clusterIndex) => parseExerciseCluster(rawCluster, label, clusterIndex));
+    requireContiguousPositions(clusters, `${label}: clusters`);
+    return { id, name, position, clusters };
+}
+
+function parseExerciseCluster(rawCluster: unknown, groupLabel: string, index: number): ExerciseCluster {
+    const label = `${groupLabel}, raggruppamento in posizione ${index}`;
+    const cluster = requireRecord(rawCluster, label);
+    const id = requireNonEmptyString(cluster.id, `${label}: id`);
+    const kind = requireClusterKind(cluster.kind, `${label}: kind`);
+    const position = requireFiniteNumber(cluster.position, `${label}: position`);
+    const restAfterRoundSeconds = requireNonNegativeInteger(
+        cluster.restAfterRoundSeconds, `${label}: restAfterRoundSeconds`);
+    const restBetweenExercisesSeconds = requireNonNegativeInteger(
+        cluster.restBetweenExercisesSeconds, `${label}: restBetweenExercisesSeconds`);
+    const rawExercises = requireArray(cluster.exercises, `${label}: exercises`);
     const exercises = rawExercises.map((rawExercise, exerciseIndex) => parseExercise(rawExercise, label, exerciseIndex));
     requireContiguousPositions(exercises, `${label}: exercises`);
-    return { id, name, position, exercises };
+    const parsedCluster = { id, kind, position, restAfterRoundSeconds, restBetweenExercisesSeconds, exercises };
+    requireRespectedClusterInvariants(parsedCluster, label);
+    return parsedCluster;
 }
 
 function parseExercise(rawExercise: unknown, groupLabel: string, index: number): Exercise {
@@ -152,6 +179,14 @@ function requireNonNegativeNumber(value: unknown, label: string): number {
     return numericValue;
 }
 
+function requireNonNegativeInteger(value: unknown, label: string): number {
+    const numericValue = requireFiniteNumber(value, label);
+    if (!Number.isInteger(numericValue) || numericValue < 0) {
+        fail(`${label} deve essere un numero intero maggiore o uguale a zero.`);
+    }
+    return numericValue;
+}
+
 function requireLocalDate(value: unknown, label: string): string {
     const text = requireNonEmptyString(value, label);
     if (!isValidLocalDate(text)) {
@@ -166,6 +201,21 @@ function requireWorkoutStatus(value: unknown, label: string): WorkoutStatus {
         fail(`${label} deve essere "draft" o "completed".`);
     }
     return text;
+}
+
+function requireClusterKind(value: unknown, label: string): ExerciseClusterKind {
+    const text = requireNonEmptyString(value, label);
+    if (text !== 'single' && text !== 'superset' && text !== 'circuit') {
+        fail(`${label} deve essere "single", "superset" o "circuit".`);
+    }
+    return text;
+}
+
+function requireRespectedClusterInvariants(cluster: ExerciseCluster, label: string): void {
+    const violation = checkClusterInvariants([cluster]);
+    if (violation !== undefined) {
+        fail(`${label}: ${violation}`);
+    }
 }
 
 function requireOptionalSetIssueLevel(value: unknown, label: string): SetIssueLevel | undefined {

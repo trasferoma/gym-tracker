@@ -10,7 +10,7 @@
 **Modello di dominio** — cardinalità non negoziabili
 
 ```
-Workout → 1..3 MuscleGroupWorkout → 1..N Exercise → 1..N ExerciseSet
+Workout → 1..3 MuscleGroupWorkout → 1..N ExerciseCluster → 1..N Exercise → 1..N ExerciseSet   (raggruppamenti aggiunti il 2026-10-10: vedi `spec-superserie-circuiti.md` nella cartella di lavoro)
 ```
 
 Un gruppo muscolare **non** contiene serie: contiene esercizi, e ogni esercizio contiene le proprie serie. Ogni serie è autonoma: ripetizioni e peso possono differire fra serie dello stesso esercizio.
@@ -18,7 +18,7 @@ Un gruppo muscolare **non** contiene serie: contiene esercizi, e ogni esercizio 
 | Entità | Campi |
 | --- | --- |
 | `Workout` | `id` (UUID), `workoutDate` (data **locale** `YYYY-MM-DD`, mai un `Date` UTC), `status` (`draft` \| `completed`), `notes?`, `muscleGroups` (lista ordinata), `createdAt`, `updatedAt` (ISO 8601) |
-| `MuscleGroupWorkout` | `id`, `name` (**nome italiano del gruppo salvato nel record**: stringa, non un id inglese, non una FK), `position`, `exercises` (lista ordinata) |
+| `MuscleGroupWorkout` | `id`, `name` (**nome italiano del gruppo salvato nel record**: stringa, non un id inglese, non una FK), `position`, `clusters` (lista ordinata di raggruppamenti; fino al 2026-10-10 era `exercises`: vedi `spec-superserie-circuiti.md` nella cartella di lavoro) |
 | `Exercise` | `id`, `name`, `position`, `notes?`, `sets` (lista ordinata) |
 | `ExerciseSet` | `id`, `position`, `repetitions` (intero > 0), `weight` (kg, decimali ammessi, **0 valido** per il corpo libero), `completed`, `notes?`, `issue?` (marcatore di problema nell'esecuzione a tre stati ciclici: assente → `warning` → `critical` → assente; assente = nessun problema, campo assente nei backup precedenti alla funzionalità) |
 
@@ -55,7 +55,7 @@ La cardinalità 1..3 dei gruppi è verificata **solo al completamento**; in bozz
 
 *Dati e backup*
 - Stato dello storage persistente, data dell'ultimo backup, numero totale di allenamenti (ed esercizi/serie), esportazione, importazione.
-- Export: un unico JSON con `formatVersion: 1`, data e ora dell'esportazione e gli allenamenti; nome file `gym-tracker-backup-YYYY-MM-DD.json`.
+- Export: un unico JSON con `formatVersion: 2` (era `1` fino al 2026-10-10, vedi `spec-superserie-circuiti.md` nella cartella di lavoro), data e ora dell'esportazione e gli allenamenti; nome file `gym-tracker-backup-YYYY-MM-DD.json`.
 - Import: **validazione integrale di struttura e versione prima di toccare il database**, riepilogo mostrato all'utente, rifiuto dei file non validi senza alterare nulla. Poi due strade: **unione** per `id` (a parità di id vince l'`updatedAt` più recente; **l'unità di merge è il workout intero**, non i singoli campi o serie) oppure **sostituzione completa** con conferma, eseguita in una transazione Dexie. I dati correnti non vengono cancellati prima che il backup sia validato per intero.
 
 *Casi limite*
@@ -114,7 +114,7 @@ La cardinalità 1..3 dei gruppi è verificata **solo al completamento**; in bozz
 4. Nello stesso esercizio coesistono serie con ripetizioni e pesi diversi, incluso `weight = 0`; `repetitions <= 0` o non intero è rifiutato.
 5. La copia da giornata precedente produce **nuovi UUID a tutti e quattro i livelli** e nessun identificatore coincide con l'originale.
 6. La copia riporta gruppi, esercizi, ordine, numero e ordine delle serie, ripetizioni, pesi e note degli esercizi, e **non** riporta data, stato `completed` dell'allenamento, spunte delle serie, note generali e marcatore di problema delle serie.
-7. L'esportazione produce un JSON con `formatVersion: 1`, istante di esportazione e l'elenco completo degli allenamenti, con nome file `gym-tracker-backup-YYYY-MM-DD.json`.
+7. L'esportazione produce un JSON con `formatVersion: 2` (era `1` fino al 2026-10-10, vedi `spec-superserie-circuiti.md` nella cartella di lavoro), istante di esportazione e l'elenco completo degli allenamenti, con nome file `gym-tracker-backup-YYYY-MM-DD.json`.
 8. Un backup valido supera la validazione e produce il riepilogo (totale nel file, nuovi, già presenti, più recenti del locale) **senza scrivere nel database**.
 9. Un backup non valido (versione ignota, struttura errata, campo mancante, gerarchia violata) è rifiutato e il contenuto del database resta identico.
 10. L'unione confronta per `id` e a parità di id conserva il workout con `updatedAt` più recente, sostituendo il **record intero**.

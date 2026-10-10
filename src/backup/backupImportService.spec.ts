@@ -55,7 +55,7 @@ describe('un backup non valido non tocca il database', () => {
         const existing = createDraftWorkout('2026-01-01');
         await saveWorkout(existing);
 
-        const result = validateBackupFile({ formatVersion: 2, exportedAt: '2026-01-01', workouts: [] });
+        const result = validateBackupFile({ formatVersion: 1, exportedAt: '2026-01-01', workouts: [] });
 
         expect(result.valid).toBe(false);
         const all = await listAllWorkouts();

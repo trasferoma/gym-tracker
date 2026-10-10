@@ -10,6 +10,7 @@ import {
     resetAllLocalData,
     saveWorkout
 } from './workoutRepository';
+import { wrapExercisesInSingleClusters } from '@/domain/exerciseClusters';
 import { toLocalDate } from '@/domain/localDate';
 import { createDraftWorkout, createExercise, createExerciseSet, createMuscleGroupWorkout } from '@/domain/workoutFactory';
 import type { Workout } from '@/domain/workout';
@@ -17,7 +18,10 @@ import type { Workout } from '@/domain/workout';
 function buildNestedWorkout(workoutDate: string): Workout {
     const draft = createDraftWorkout(workoutDate);
     const exercise = { ...createExercise('Panca piana', 0), sets: [createExerciseSet(0, 6, 20), createExerciseSet(1, 6, 22)] };
-    const group = { ...createMuscleGroupWorkout('Petto', 0), exercises: [exercise] };
+    const group = {
+        ...createMuscleGroupWorkout('Petto', 0),
+        clusters: wrapExercisesInSingleClusters([exercise])
+    };
     return { ...draft, muscleGroups: [group] };
 }
 
@@ -35,7 +39,7 @@ describe('findWorkoutById / saveWorkout', () => {
         const reloaded = await findWorkoutById(workout.id);
 
         expect(reloaded).toEqual(workout);
-        expect(reloaded?.muscleGroups[0]?.exercises[0]?.sets.map((set) => set.position)).toEqual([0, 1]);
+        expect(reloaded?.muscleGroups[0]?.clusters[0]?.exercises[0]?.sets.map((set) => set.position)).toEqual([0, 1]);
         expect(reloaded?.muscleGroups[0]).not.toHaveProperty('sets');
     });
 

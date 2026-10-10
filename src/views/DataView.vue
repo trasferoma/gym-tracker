@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef } from 'vue';
 
+import { BACKUP_FORMAT_VERSION } from '@/backup/backupFormat';
 import AppIcon from '@/components/icon/AppIcon.vue';
 import BusyButton from '@/components/feedback/BusyButton.vue';
 import ImportSummaryCard from '@/components/backup/ImportSummaryCard.vue';
@@ -181,7 +182,7 @@ const resetAction = useAsyncAction(async () => {
     Esporta backup JSON
   </BusyButton>
   <p class="faint hint">
-    {{ exportFileNameHint }} · formato versione 1
+    {{ exportFileNameHint }} · formato versione {{ BACKUP_FORMAT_VERSION }}
   </p>
 
   <div class="sec">
@@ -214,6 +215,7 @@ const resetAction = useAsyncAction(async () => {
   <ImportSummaryCard
     v-else-if="backup.importReadiness.value.state === 'ready'"
     :summary="backup.importReadiness.value.summary"
+    :format-version="backup.importReadiness.value.formatVersion"
     :busy="mergeAction.pending.value"
     class="import-feedback"
     @merge="mergeAction.run"

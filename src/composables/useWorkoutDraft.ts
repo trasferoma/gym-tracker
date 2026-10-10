@@ -7,7 +7,7 @@ import type { ReorderDirection } from '@/domain/workoutStructure';
 import { copyWorkoutStructure } from '@/domain/workoutCopy';
 import { createDraftWorkout } from '@/domain/workoutFactory';
 import { nextSetIssueLevel } from '@/domain/setIssue';
-import type { Workout, WorkoutOperationOutcome } from '@/domain/workout';
+import type { ExerciseClusterKind, Workout, WorkoutOperationOutcome } from '@/domain/workout';
 import { findWorkoutById, saveWorkout } from '@/persistence/workoutRepository';
 
 export interface UseWorkoutDraft {
@@ -27,6 +27,13 @@ export interface UseWorkoutDraft {
     renameExercise(groupId: string, exerciseId: string, name: string): void;
     removeExercise(groupId: string, exerciseId: string): void;
     reorderExercise(groupId: string, exerciseId: string, direction: ReorderDirection): void;
+    linkClusterToNext(groupId: string, clusterId: string): void;
+    detachExercise(groupId: string, exerciseId: string): void;
+    changeClusterKind(groupId: string, clusterId: string, kind: ExerciseClusterKind): void;
+    updateClusterRestAfterRound(groupId: string, clusterId: string, seconds: number): void;
+    updateClusterRestBetweenExercises(groupId: string, clusterId: string, seconds: number): void;
+    reorderCluster(groupId: string, clusterId: string, direction: ReorderDirection): void;
+    addExerciseToCluster(groupId: string, clusterId: string, name: string): void;
     addExerciseSet(groupId: string, exerciseId: string): void;
     duplicateLastExerciseSet(groupId: string, exerciseId: string): void;
     removeExerciseSet(groupId: string, exerciseId: string, setId: string): void;
@@ -135,6 +142,48 @@ export function useWorkoutDraft(): UseWorkoutDraft {
         commitWorkout(next);
     }
 
+    function linkClusterToNext(groupId: string, clusterId: string): void {
+        const current = requireLoadedWorkout();
+        const next = structure.linkClusterToNext(current, groupId, clusterId);
+        commitWorkout(next);
+    }
+
+    function detachExercise(groupId: string, exerciseId: string): void {
+        const current = requireLoadedWorkout();
+        const next = structure.detachExercise(current, groupId, exerciseId);
+        commitWorkout(next);
+    }
+
+    function changeClusterKind(groupId: string, clusterId: string, kind: ExerciseClusterKind): void {
+        const current = requireLoadedWorkout();
+        const next = structure.changeClusterKind(current, groupId, clusterId, kind);
+        commitWorkout(next);
+    }
+
+    function updateClusterRestAfterRound(groupId: string, clusterId: string, seconds: number): void {
+        const current = requireLoadedWorkout();
+        const next = structure.updateClusterRestAfterRound(current, groupId, clusterId, seconds);
+        commitWorkout(next);
+    }
+
+    function updateClusterRestBetweenExercises(groupId: string, clusterId: string, seconds: number): void {
+        const current = requireLoadedWorkout();
+        const next = structure.updateClusterRestBetweenExercises(current, groupId, clusterId, seconds);
+        commitWorkout(next);
+    }
+
+    function reorderCluster(groupId: string, clusterId: string, direction: ReorderDirection): void {
+        const current = requireLoadedWorkout();
+        const next = structure.reorderCluster(current, groupId, clusterId, direction);
+        commitWorkout(next);
+    }
+
+    function addExerciseToCluster(groupId: string, clusterId: string, name: string): void {
+        const current = requireLoadedWorkout();
+        const next = structure.addExerciseToCluster(current, groupId, clusterId, name);
+        commitWorkout(next);
+    }
+
     function addExerciseSet(groupId: string, exerciseId: string): void {
         const current = requireLoadedWorkout();
         const next = structure.addExerciseSet(current, groupId, exerciseId);
@@ -210,6 +259,13 @@ export function useWorkoutDraft(): UseWorkoutDraft {
         renameExercise,
         removeExercise,
         reorderExercise,
+        linkClusterToNext,
+        detachExercise,
+        changeClusterKind,
+        updateClusterRestAfterRound,
+        updateClusterRestBetweenExercises,
+        reorderCluster,
+        addExerciseToCluster,
         addExerciseSet,
         duplicateLastExerciseSet,
         removeExerciseSet,

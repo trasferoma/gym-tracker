@@ -33,7 +33,7 @@ describe('exportBackup', () => {
 
         const today = todayLocalDate();
         expect(downloadSpy).toHaveBeenCalledExactlyOnceWith(
-                expect.objectContaining({ formatVersion: 1 }), `gym-tracker-backup-${today}.json`);
+                expect.objectContaining({ formatVersion: 2 }), `gym-tracker-backup-${today}.json`);
         expect(backup.lastBackupDate.value).toBe(today);
         const secondBackup = useBackup();
         await secondBackup.loadLastBackupDate();
@@ -56,7 +56,7 @@ describe('prepareImport', () => {
     it('rifiuta un file strutturalmente non valido', async () => {
         const backup = useBackup();
 
-        await backup.prepareImport(JSON.stringify({ formatVersion: 2, exportedAt: '2026-01-01', workouts: [] }));
+        await backup.prepareImport(JSON.stringify({ formatVersion: 1, exportedAt: '2026-01-01', workouts: [] }));
 
         expect(backup.importReadiness.value.state).toBe('invalid');
     });
@@ -66,7 +66,7 @@ describe('prepareImport', () => {
         await saveWorkout(local);
         const fromFile = createDraftWorkout('2026-02-01');
         const fileContent = JSON.stringify({
-            formatVersion: 1,
+            formatVersion: 2,
             exportedAt: '2026-02-01T00:00:00.000Z',
             workouts: [local, fromFile]
         });
@@ -76,6 +76,7 @@ describe('prepareImport', () => {
 
         expect(backup.importReadiness.value).toEqual({
             state: 'ready',
+            formatVersion: 2,
             summary: { totalInFile: 2, newCount: 1, alreadyPresentCount: 1, newerThanLocalCount: 0 }
         });
         expect(await listAllWorkouts()).toEqual([local]);
@@ -89,7 +90,7 @@ describe('confirmMerge', () => {
         const fromFile = createDraftWorkout('2026-03-01');
         const backup = useBackup();
         await backup.prepareImport(JSON.stringify({
-            formatVersion: 1,
+            formatVersion: 2,
             exportedAt: '2026-03-01T00:00:00.000Z',
             workouts: [fromFile]
         }));
@@ -108,7 +109,7 @@ describe('confirmReplace', () => {
         const fromFile = createDraftWorkout('2026-04-01');
         const backup = useBackup();
         await backup.prepareImport(JSON.stringify({
-            formatVersion: 1,
+            formatVersion: 2,
             exportedAt: '2026-04-01T00:00:00.000Z',
             workouts: [fromFile]
         }));

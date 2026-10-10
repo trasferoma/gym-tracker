@@ -1,5 +1,5 @@
 import { generateId } from './identity';
-import type { Exercise, ExerciseSet, MuscleGroupWorkout, Workout } from './workout';
+import type { Exercise, ExerciseCluster, ExerciseSet, MuscleGroupWorkout, Workout } from './workout';
 
 export function copyWorkoutStructure(source: Workout, workoutDate: string): Workout {
     const timestamp = new Date().toISOString();
@@ -19,7 +19,18 @@ function copyMuscleGroup(group: MuscleGroupWorkout): MuscleGroupWorkout {
         id: generateId(),
         name: group.name,
         position: group.position,
-        exercises: group.exercises.map(copyExercise)
+        clusters: group.clusters.map(copyExerciseCluster)
+    };
+}
+
+function copyExerciseCluster(cluster: ExerciseCluster): ExerciseCluster {
+    return {
+        id: generateId(),
+        kind: cluster.kind,
+        position: cluster.position,
+        restAfterRoundSeconds: cluster.restAfterRoundSeconds,
+        restBetweenExercisesSeconds: cluster.restBetweenExercisesSeconds,
+        exercises: cluster.exercises.map(copyExercise)
     };
 }
 

@@ -1,3 +1,4 @@
+import { checkClusterInvariants, listGroupExercises } from './exerciseClusters';
 import {
     MAX_COMPLETED_MUSCLE_GROUPS,
     MIN_COMPLETED_MUSCLE_GROUPS,
@@ -15,9 +16,13 @@ export function checkCompletionEligibility(workout: Workout): CompletionEligibil
     if (!groupCountEligibility.eligible) {
         return groupCountEligibility;
     }
-    const groupWithoutExercises = workout.muscleGroups.find((group) => group.exercises.length === 0);
+    const groupWithoutExercises = workout.muscleGroups.find((group) => listGroupExercises(group).length === 0);
     if (groupWithoutExercises) {
         return { eligible: false, reason: `Il gruppo "${groupWithoutExercises.name}" non ha ancora esercizi.` };
+    }
+    const clusterEligibility = checkClusterStructure(workout);
+    if (!clusterEligibility.eligible) {
+        return clusterEligibility;
     }
     const exerciseWithoutValidSet = findExerciseWithoutValidSet(workout);
     if (exerciseWithoutValidSet) {
@@ -50,14 +55,20 @@ function checkGroupCount(workout: Workout): CompletionEligibility {
     };
 }
 
-function findExerciseWithoutValidSet(workout: Workout): Exercise | undefined {
+function checkClusterStructure(workout: Workout): CompletionEligibility {
     for (const group of workout.muscleGroups) {
-        const invalidExercise = group.exercises.find((exercise) => !hasValidSet(exercise));
-        if (invalidExercise) {
-            return invalidExercise;
+        const violation = checkClusterInvariants(group.clusters);
+        if (violation) {
+            return { eligible: false, reason: `Gruppo "${group.name}": ${violation}` };
         }
     }
-    return undefined;
+    return { eligible: true };
+}
+
+function findExerciseWithoutValidSet(workout: Workout): Exercise | undefined {
+    return workout.muscleGroups
+            .flatMap((group) => listGroupExercises(group))
+            .find((exercise) => !hasValidSet(exercise));
 }
 
 function hasValidSet(exercise: Exercise): boolean {

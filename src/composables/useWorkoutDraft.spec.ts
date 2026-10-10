@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { useWorkoutDraft } from './useWorkoutDraft';
+import { type UseWorkoutDraft, useWorkoutDraft } from './useWorkoutDraft';
 import { gymTrackerDatabase } from '@/persistence/gymTrackerDatabase';
 import * as workoutRepository from '@/persistence/workoutRepository';
 import { findWorkoutById, saveWorkout } from '@/persistence/workoutRepository';
-import { createDraftWorkout } from '@/domain/workoutFactory';
+import { wrapExercisesInSingleClusters } from '@/domain/exerciseClusters';
+import { createDraftWorkout, createExercise, createExerciseCluster } from '@/domain/workoutFactory';
 import type { Workout } from '@/domain/workout';
 
 afterEach(async () => {
@@ -61,7 +62,7 @@ describe('createDraft', () => {
 
     it('copia la struttura della giornata sorgente con nuovi UUID', async () => {
         const source = await seedWorkout({
-            muscleGroups: [{ id: 'group-petto', name: 'Petto', position: 0, exercises: [] }]
+            muscleGroups: [{ id: 'group-petto', name: 'Petto', position: 0, clusters: [] }]
         });
         const draft = useWorkoutDraft();
 
@@ -92,13 +93,13 @@ describe('note, ripetizioni, peso e spunta di una serie', () => {
                 id: 'group-petto',
                 name: 'Petto',
                 position: 0,
-                exercises: [{
+                clusters: wrapExercisesInSingleClusters([{
                     id: 'exercise-panca',
                     name: 'Panca piana',
                     position: 0,
                     notes: '',
                     sets: [{ id: 'set-1', position: 0, repetitions: 10, weight: 20, completed: false, notes: '' }]
-                }]
+                }])
             }]
         });
         const draft = useWorkoutDraft();
@@ -109,7 +110,7 @@ describe('note, ripetizioni, peso e spunta di una serie', () => {
         draft.toggleSetCompleted('group-petto', 'exercise-panca', 'set-1');
         await draft.flushPendingSave();
 
-        const set = draft.workout.value?.muscleGroups[0]?.exercises[0]?.sets[0];
+        const set = draft.workout.value?.muscleGroups[0]?.clusters[0]?.exercises[0]?.sets[0];
         expect(set).toMatchObject({ repetitions: 8, weight: 22.5, completed: true });
     });
 
@@ -119,28 +120,71 @@ describe('note, ripetizioni, peso e spunta di una serie', () => {
                 id: 'group-petto',
                 name: 'Petto',
                 position: 0,
-                exercises: [{
+                clusters: wrapExercisesInSingleClusters([{
                     id: 'exercise-panca',
                     name: 'Panca piana',
                     position: 0,
                     notes: '',
                     sets: [{ id: 'set-1', position: 0, repetitions: 10, weight: 20, completed: false, notes: '' }]
-                }]
+                }])
             }]
         });
         const draft = useWorkoutDraft();
         await draft.load(seeded.id);
 
         draft.cycleSetIssue('group-petto', 'exercise-panca', 'set-1');
-        expect(draft.workout.value?.muscleGroups[0]?.exercises[0]?.sets[0]?.issue).toBe('warning');
+        expect(draft.workout.value?.muscleGroups[0]?.clusters[0]?.exercises[0]?.sets[0]?.issue).toBe('warning');
 
         draft.cycleSetIssue('group-petto', 'exercise-panca', 'set-1');
-        expect(draft.workout.value?.muscleGroups[0]?.exercises[0]?.sets[0]?.issue).toBe('critical');
+        expect(draft.workout.value?.muscleGroups[0]?.clusters[0]?.exercises[0]?.sets[0]?.issue).toBe('critical');
 
         draft.cycleSetIssue('group-petto', 'exercise-panca', 'set-1');
         await draft.flushPendingSave();
 
-        expect(draft.workout.value?.muscleGroups[0]?.exercises[0]?.sets[0]?.issue).toBe(undefined);
+        expect(draft.workout.value?.muscleGroups[0]?.clusters[0]?.exercises[0]?.sets[0]?.issue).toBe(undefined);
+    });
+});
+
+describe('operazioni sui raggruppamenti', () => {
+    const operations: readonly (readonly [string, (draft: UseWorkoutDraft) => void])[] = [
+        ['linkClusterToNext', (draft) => draft.linkClusterToNext('group-petto', 'cluster-a')],
+        ['detachExercise', (draft) => draft.detachExercise('group-petto', 'exercise-c')],
+        ['changeClusterKind', (draft) => draft.changeClusterKind('group-petto', 'cluster-b', 'circuit')],
+        ['updateClusterRestAfterRound', (draft) => draft.updateClusterRestAfterRound('group-petto', 'cluster-b', 90)],
+        ['updateClusterRestBetweenExercises',
+            (draft) => draft.updateClusterRestBetweenExercises('group-petto', 'cluster-b', 15)],
+        ['reorderCluster', (draft) => draft.reorderCluster('group-petto', 'cluster-b', 'up')],
+        ['addExerciseToCluster', (draft) => draft.addExerciseToCluster('group-petto', 'cluster-b', 'Esercizio nuovo')]
+    ];
+
+    async function seedWorkoutWithClusters(): Promise<Workout> {
+        const single = { ...createExerciseCluster(createExercise('Panca', 0), 0), id: 'cluster-a' };
+        const exerciseB = { ...createExercise('Croci', 0), id: 'exercise-b' };
+        const exerciseC = { ...createExercise('Dip', 1), id: 'exercise-c' };
+        const superset = {
+            ...createExerciseCluster(exerciseB, 1),
+            id: 'cluster-b',
+            kind: 'superset' as const,
+            exercises: [exerciseB, exerciseC]
+        };
+        return seedWorkout({
+            updatedAt: '2026-01-01T00:00:00.000Z',
+            muscleGroups: [{ id: 'group-petto', name: 'Petto', position: 0, clusters: [single, superset] }]
+        });
+    }
+
+    it.each(operations)('%s aggiorna updatedAt e salva tramite autosave', async (_name, operate) => {
+        const seeded = await seedWorkoutWithClusters();
+        const draft = useWorkoutDraft();
+        await draft.load(seeded.id);
+
+        operate(draft);
+        await draft.flushPendingSave();
+
+        expect(draft.workout.value?.updatedAt).not.toBe('2026-01-01T00:00:00.000Z');
+        const persisted = await findWorkoutById(seeded.id);
+        expect(persisted).toEqual(draft.workout.value);
+        expect(persisted).not.toEqual(seeded);
     });
 });
 
@@ -150,13 +194,13 @@ async function seedWorkoutWithExistingExerciseAndSet(): Promise<Workout> {
             id: 'group-petto',
             name: 'Petto',
             position: 0,
-            exercises: [{
+            clusters: wrapExercisesInSingleClusters([{
                 id: 'exercise-panca',
                 name: 'Panca piana',
                 position: 0,
                 notes: '',
                 sets: [{ id: 'set-1', position: 0, repetitions: 10, weight: 20, completed: false, notes: '' }]
-            }]
+            }])
         }]
     });
 }
@@ -203,7 +247,7 @@ describe('operazioni rifiutate', () => {
         const seeded = await seedWorkout({
             status: 'completed',
             muscleGroups: [
-                { id: 'group-petto', name: 'Petto', position: 0, exercises: [] }
+                { id: 'group-petto', name: 'Petto', position: 0, clusters: [] }
             ]
         });
         const draft = useWorkoutDraft();

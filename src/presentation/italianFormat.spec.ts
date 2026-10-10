@@ -6,6 +6,7 @@ import {
     formatWorkoutDayLong,
     formatWorkoutDayShort
 } from './italianFormat';
+import { listGroupExercises } from '@/domain/exerciseClusters';
 import { addExercise, addExerciseSet, addMuscleGroup } from '@/domain/workoutStructure';
 import { createDraftWorkout } from '@/domain/workoutFactory';
 import type { Workout } from '@/domain/workout';
@@ -30,7 +31,7 @@ describe('describeWorkoutDeletion', () => {
         workout = unwrap(addMuscleGroup(workout, 'Petto'));
         const group = workout.muscleGroups[0]!;
         workout = addExercise(workout, group.id, 'Panca piana');
-        const exercise = workout.muscleGroups[0]!.exercises[0]!;
+        const exercise = listGroupExercises(workout.muscleGroups[0]!)[0]!;
         workout = addExerciseSet(workout, group.id, exercise.id);
 
         const description = describeWorkoutDeletion(workout);

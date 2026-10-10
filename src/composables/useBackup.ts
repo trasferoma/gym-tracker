@@ -12,7 +12,7 @@ import { listAllWorkouts, resetAllLocalData } from '@/persistence/workoutReposit
 export type ImportReadiness =
     | { readonly state: 'idle' }
     | { readonly state: 'invalid'; readonly reason: string }
-    | { readonly state: 'ready'; readonly summary: BackupImportSummary };
+    | { readonly state: 'ready'; readonly formatVersion: number; readonly summary: BackupImportSummary };
 
 export interface UseBackup {
     readonly lastBackupDate: Ref<string | undefined>;
@@ -64,7 +64,8 @@ export function useBackup(): UseBackup {
         const localWorkouts = await listAllWorkouts();
         const plan = planImport(validation.backup.workouts, localWorkouts);
         pendingImport = { fileWorkouts: validation.backup.workouts, plan };
-        importReadiness.value = { state: 'ready', summary: plan.summary };
+        const formatVersion = validation.backup.formatVersion;
+        importReadiness.value = { state: 'ready', formatVersion, summary: plan.summary };
     }
 
     async function confirmMerge(): Promise<void> {

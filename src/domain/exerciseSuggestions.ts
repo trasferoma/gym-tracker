@@ -1,3 +1,4 @@
+import { listGroupExercises } from './exerciseClusters';
 import type { Workout } from './workout';
 
 export const MAX_VISIBLE_SUGGESTIONS = 8;
@@ -47,7 +48,7 @@ function collectExerciseNamesFromWorkout(
         if (group.name !== groupName) {
             continue;
         }
-        for (const exercise of group.exercises) {
+        for (const exercise of listGroupExercises(group)) {
             const normalizedName = normalizeExerciseName(exercise.name);
             if (seenNames.has(normalizedName)) {
                 continue;

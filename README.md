@@ -7,6 +7,7 @@ Uso personale. Interfaccia in italiano, codice in inglese.
 ## Cosa fa
 
 - Registra una **giornata di allenamento** da 1 a 3 gruppi muscolari, i loro esercizi e le serie di ciascun esercizio, con ripetizioni e peso indipendenti serie per serie.
+- Raggruppa gli esercizi in **superserie** e **circuiti**, con i tempi di recupero da leggere a colpo d'occhio.
 - Salva **automaticamente** mentre compili: nessun pulsante «salva». Lo stato del salvataggio è sempre visibile.
 - Permette di **copiare la struttura** di una giornata precedente e ripartire da lì.
 - Mostra lo **storico** in ordine decrescente, con filtro per gruppo muscolare.
@@ -113,9 +114,13 @@ src/
 │   ├── localDate.ts           algebra della data locale YYYY-MM-DD
 │   ├── workoutFactory.ts      creazione di bozza, gruppo, esercizio, serie
 │   ├── workoutStructure.ts    riordino, inserimento, eliminazione, position
+│   ├── exerciseClusters.ts    raggruppamenti: invarianti, collega, stacca, tipo, tempi
+│   ├── positions.ts           riordino e ricompattazione delle position
 │   ├── workoutCopy.ts         copia da giornata precedente
 │   ├── workoutCompletion.ts   validazione del completamento
+│   ├── workoutCounts.ts       conteggi di esercizi e serie
 │   ├── setInput.ts            parsing di ripetizioni e peso digitati
+│   ├── restInput.ts           parsing dei secondi di recupero digitati
 │   └── exerciseSuggestions.ts suggerimenti dallo storico
 ├── persistence/         unico punto che conosce Dexie
 ├── backup/              formato, validazione, export, piano e servizio di import
@@ -129,7 +134,7 @@ src/
 
 Regole architetturali mantenute e verificate: **nessun accesso a Dexie fuori da `persistence/`**, nessuna logica di dominio nei componenti, viste thin, nessun colore fuori dai token CSS, nessun uso di `localStorage` per i dati applicativi.
 
-I test stanno accanto al codice che testano, come `src/**/*.spec.ts`. Sono 180 in 26 file, comprese le prove di componente che montano davvero i componenti Vue.
+I test stanno accanto al codice che testano, come `src/**/*.spec.ts`. Sono 328 in 33 file, comprese le prove di componente che montano davvero i componenti Vue.
 
 ### `prototype/`
 
@@ -140,18 +145,22 @@ Contiene il **mockup grafico** usa-e-getta con cui è stata approvata la direzio
 ```
 Giornata di allenamento (Workout)
 └── da 1 a 3 gruppi muscolari (MuscleGroupWorkout)
-    └── N esercizi (Exercise)
-        └── N serie (ExerciseSet)
-            ├── ripetizioni
-            └── peso in kg
+    └── N raggruppamenti (ExerciseCluster): singolo, superserie o circuito
+        └── N esercizi (Exercise)
+            └── N serie (ExerciseSet)
+                ├── ripetizioni
+                └── peso in kg
 ```
 
-Un gruppo muscolare **non contiene serie**: contiene esercizi, e ogni esercizio contiene le proprie serie. Ogni serie è autonoma, quindi ripetizioni e peso possono differire fra una serie e l'altra dello stesso esercizio.
+Un gruppo muscolare contiene **raggruppamenti**, i raggruppamenti contengono gli esercizi, e ogni esercizio contiene le proprie serie. Ogni serie è autonoma, quindi ripetizioni e peso possono differire fra una serie e l'altra dello stesso esercizio.
+
+Il raggruppamento c'è sempre. Un **esercizio singolo** è un raggruppamento con un solo esercizio e il recupero fra le serie. Una **superserie** sono due o più esercizi eseguiti di fila, con il recupero a fine giro. Un **circuito** è come una superserie, ma ha anche un recupero fra un esercizio e l'altro. I tempi si impostano e si leggono nella testata del raggruppamento: non c'è un cronometro. Superserie e circuiti si creano con il pulsante catena «Collega al successivo» fra due esercizi vicini, e un esercizio si fa uscire con «Stacca» senza eliminarlo.
 
 | Entità | Campi |
 | --- | --- |
 | `Workout` | `id`, `workoutDate` (data locale `YYYY-MM-DD`), `status` (`draft` \| `completed`), `notes`, `muscleGroups`, `createdAt`, `updatedAt` |
-| `MuscleGroupWorkout` | `id`, `name` (nome italiano del gruppo), `position`, `exercises` |
+| `MuscleGroupWorkout` | `id`, `name` (nome italiano del gruppo), `position`, `clusters` |
+| `ExerciseCluster` | `id`, `kind` (`single` \| `superset` \| `circuit`), `position`, `restAfterRoundSeconds`, `restBetweenExercisesSeconds`, `exercises` |
 | `Exercise` | `id`, `name`, `position`, `notes`, `sets` |
 | `ExerciseSet` | `id`, `position`, `repetitions`, `weight`, `completed`, `notes` |
 
@@ -167,7 +176,7 @@ I quattro casi d'uso reali dell'app sono leggere una giornata completa, copiarla
 
 Schermata **Dati**.
 
-L'esportazione produce `gym-tracker-backup-YYYY-MM-DD.json` con la versione del formato (`1`), l'istante di esportazione e tutti gli allenamenti.
+L'esportazione produce `gym-tracker-backup-YYYY-MM-DD.json` con la versione del formato (`2`), l'istante di esportazione e tutti gli allenamenti. Un file con un'altra versione, compresa la `1` precedente ai raggruppamenti, viene rifiutato.
 
 L'importazione **valida il file per intero prima di toccare il database**: versione, struttura, tipi, gerarchia, date, `position`, valori delle serie. Un file non valido viene rifiutato spiegando il motivo, e i dati esistenti restano identici. Superata la validazione compare un riepilogo — quanti allenamenti nel file, quanti nuovi, quanti già presenti, quanti più recenti del locale — e due strade:
 

@@ -5,14 +5,15 @@ import ExercisePicker from './ExercisePicker.vue';
 import SetRegister from './SetRegister.vue';
 import AppIcon from '@/components/icon/AppIcon.vue';
 import type { UseWorkoutDraft } from '@/composables/useWorkoutDraft';
-import type { Exercise, MuscleGroupWorkout } from '@/domain/workout';
+import { isMultipleCluster } from '@/domain/exerciseClusters';
+import type { Exercise, ExerciseCluster, MuscleGroupWorkout } from '@/domain/workout';
 import { formatRepetitionScheme } from '@/presentation/repetitionScheme';
 
 const props = defineProps<{
     exercise: Exercise;
     group: MuscleGroupWorkout;
+    cluster: ExerciseCluster;
     index: number;
-    total: number;
     suggestions: readonly string[];
     draft: UseWorkoutDraft;
 }>();
@@ -21,6 +22,8 @@ const emit = defineEmits<{ delete: [] }>();
 
 const renaming = ref(false);
 
+const isMultiple = computed(() => isMultipleCluster(props.cluster));
+const isLast = computed(() => props.index === props.cluster.exercises.length - 1);
 const schemeChip = computed(() => formatRepetitionScheme(props.exercise.sets));
 
 function reorderUp(): void {
@@ -29,6 +32,10 @@ function reorderUp(): void {
 
 function reorderDown(): void {
     props.draft.reorderExercise(props.group.id, props.exercise.id, 'down');
+}
+
+function detach(): void {
+    props.draft.detachExercise(props.group.id, props.exercise.id);
 }
 
 function requestDelete(): void {
@@ -46,24 +53,36 @@ function renameExercise(name: string): void {
     <div class="ex-head">
       <span class="ex-name">{{ exercise.name }}</span>
       <span class="chip">{{ schemeChip }}</span>
-      <button
-        type="button"
-        class="icon-btn"
-        :disabled="index === 0"
-        aria-label="Sposta su"
-        @click="reorderUp"
-      >
-        <AppIcon name="up" />
-      </button>
-      <button
-        type="button"
-        class="icon-btn"
-        :disabled="index === total - 1"
-        aria-label="Sposta giù"
-        @click="reorderDown"
-      >
-        <AppIcon name="down" />
-      </button>
+    </div>
+    <div class="ex-actions">
+      <template v-if="isMultiple">
+        <button
+          type="button"
+          class="icon-btn"
+          :disabled="index === 0"
+          aria-label="Sposta su"
+          @click="reorderUp"
+        >
+          <AppIcon name="up" />
+        </button>
+        <button
+          type="button"
+          class="icon-btn"
+          :disabled="isLast"
+          aria-label="Sposta giù"
+          @click="reorderDown"
+        >
+          <AppIcon name="down" />
+        </button>
+        <button
+          type="button"
+          class="icon-btn"
+          aria-label="Stacca dal raggruppamento"
+          @click="detach"
+        >
+          <AppIcon name="unlink" />
+        </button>
+      </template>
       <button
         type="button"
         class="icon-btn"
@@ -115,16 +134,29 @@ function renameExercise(name: string): void {
 
 .ex-head {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px 12px;
+    align-items: flex-start;
+    gap: 12px;
 }
 
 .ex-name {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
     font-weight: 650;
     font-size: 14.5px;
-    flex: 1 1 100%;
-    min-width: 0;
+}
+
+.ex-head .chip {
+    flex: 0 0 auto;
+}
+
+.ex-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
 }
 
 .ex-note {

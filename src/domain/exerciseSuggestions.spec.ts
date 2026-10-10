@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { wrapExercisesInSingleClusters } from './exerciseClusters';
 import { filterSuggestionsByQuery, MAX_VISIBLE_SUGGESTIONS, suggestExerciseNames } from './exerciseSuggestions';
-import { createDraftWorkout, createExercise, createMuscleGroupWorkout } from './workoutFactory';
+import { createDraftWorkout, createExercise, createExerciseCluster, createMuscleGroupWorkout } from './workoutFactory';
 import type { Workout } from './workout';
 
 function buildWorkout(workoutDate: string, createdAt: string, entries: readonly [string, readonly string[]][]): Workout {
@@ -9,12 +10,28 @@ function buildWorkout(workoutDate: string, createdAt: string, entries: readonly 
     const muscleGroups = entries.map(([groupName, exerciseNames], position) => {
         const group = createMuscleGroupWorkout(groupName, position);
         const exercises = exerciseNames.map((name, exercisePosition) => createExercise(name, exercisePosition));
-        return { ...group, exercises };
+        return { ...group, clusters: wrapExercisesInSingleClusters(exercises) };
     });
     return { ...draft, createdAt, updatedAt: createdAt, muscleGroups };
 }
 
 describe('suggestExerciseNames', () => {
+    it('attraversa i raggruppamenti multipli e singoli nell ordine del gruppo', () => {
+        const draft = createDraftWorkout('2026-01-10');
+        const group = createMuscleGroupWorkout('Petto', 0);
+        const superset = {
+            ...createExerciseCluster(createExercise('Panca', 0), 0),
+            kind: 'superset' as const,
+            exercises: [createExercise('Panca', 0), createExercise('Croci', 1)]
+        };
+        const single = createExerciseCluster(createExercise('Piegamenti', 0), 1);
+        const workout = { ...draft, muscleGroups: [{ ...group, clusters: [superset, single] }] };
+
+        const suggestions = suggestExerciseNames([workout], 'Petto');
+
+        expect(suggestions).toEqual(['Panca', 'Croci', 'Piegamenti']);
+    });
+
     it('filtra i suggerimenti sul gruppo corrente e li ordina per uso più recente', () => {
         const older = buildWorkout('2026-01-10', '2026-01-10T08:00:00.000Z', [
             ['Petto', ['Panca piana con manubri']]

@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
-import ExerciseBlock from './ExerciseBlock.vue';
+import ExerciseClusterCard from './ExerciseClusterCard.vue';
 import ExercisePicker from './ExercisePicker.vue';
 import AppIcon from '@/components/icon/AppIcon.vue';
 import type { UseWorkoutDraft } from '@/composables/useWorkoutDraft';
+import { findClusterColorSlot } from '@/domain/exerciseClusters';
 import { suggestExerciseNames } from '@/domain/exerciseSuggestions';
-import type { Exercise, MuscleGroupWorkout, Workout } from '@/domain/workout';
+import type { Exercise, ExerciseCluster, MuscleGroupWorkout, Workout } from '@/domain/workout';
+import { countMuscleGroup } from '@/domain/workoutCounts';
 
 const props = defineProps<{
     group: MuscleGroupWorkout;
@@ -22,8 +24,7 @@ const emit = defineEmits<{ delete: []; deleteExercise: [exercise: Exercise] }>()
 const expanded = ref(true);
 const addingExercise = ref(false);
 
-const exerciseCount = computed(() => props.group.exercises.length);
-const setCount = computed(() => props.group.exercises.reduce((total, exercise) => total + exercise.sets.length, 0));
+const groupCounts = computed(() => countMuscleGroup(props.group));
 const suggestions = computed(() => suggestExerciseNames(props.workouts, props.group.name));
 
 function toggleExpanded(): void {
@@ -36,6 +37,14 @@ function reorderUp(): void {
 
 function reorderDown(): void {
     props.draft.reorderMuscleGroup(props.group.id, 'down');
+}
+
+function colorSlotOf(cluster: ExerciseCluster): number | undefined {
+    return findClusterColorSlot(props.group.clusters, cluster.id);
+}
+
+function linkToNext(cluster: ExerciseCluster): void {
+    props.draft.linkClusterToNext(props.group.id, cluster.id);
 }
 
 function requestDelete(): void {
@@ -61,7 +70,7 @@ function addExercise(name: string): void {
       <span class="grp-pos">{{ groupPosition }}</span>
       <span>
         <span class="grp-name">{{ group.name }}</span>
-        <span class="grp-meta">{{ exerciseCount }} es. &middot; {{ setCount }} serie</span>
+        <span class="grp-meta">{{ groupCounts.exercises }} es. &middot; {{ groupCounts.sets }} serie</span>
       </span>
       <span class="spacer" />
       <button
@@ -108,22 +117,39 @@ function addExercise(name: string): void {
       class="grp-body"
     >
       <p
-        v-if="group.exercises.length === 0"
+        v-if="groupCounts.exercises === 0"
         class="faint"
       >
         Nessun esercizio in questo gruppo.
       </p>
-      <ExerciseBlock
-        v-for="(exercise, exerciseIndex) in group.exercises"
-        :key="exercise.id"
-        :exercise="exercise"
-        :group="group"
-        :index="exerciseIndex"
-        :total="group.exercises.length"
-        :suggestions="suggestions"
-        :draft="draft"
-        @delete="requestDeleteExercise(exercise)"
-      />
+      <template
+        v-for="(cluster, clusterIndex) in group.clusters"
+        :key="cluster.id"
+      >
+        <ExerciseClusterCard
+          :cluster="cluster"
+          :group="group"
+          :index="clusterIndex"
+          :total="group.clusters.length"
+          :color-slot="colorSlotOf(cluster)"
+          :suggestions="suggestions"
+          :draft="draft"
+          @delete-exercise="requestDeleteExercise"
+        />
+        <div
+          v-if="clusterIndex < group.clusters.length - 1"
+          class="cluster-link"
+        >
+          <button
+            type="button"
+            class="icon-btn"
+            aria-label="Collega al successivo"
+            @click="linkToNext(cluster)"
+          >
+            <AppIcon name="link" />
+          </button>
+        </div>
+      </template>
       <ExercisePicker
         v-if="addingExercise"
         :group-name="group.name"
@@ -206,6 +232,12 @@ function addExercise(name: string): void {
 .grp-body .faint {
     margin: 2px 0 0;
     font-size: 13px;
+}
+
+.cluster-link {
+    display: flex;
+    justify-content: center;
+    margin: 2px 0;
 }
 
 .chev {

@@ -19,7 +19,11 @@ export type IconName =
     | 'empty'
     | 'down_tray'
     | 'up_tray'
-    | 'x';
+    | 'x'
+    | 'link'
+    | 'unlink'
+    | 'bolt'
+    | 'cycle';
 
 defineProps<{ name: IconName }>();
 </script>
@@ -135,6 +139,22 @@ defineProps<{ name: IconName }>();
     <path
       v-else-if="name === 'x'"
       d="M6 6l12 12M18 6L6 18"
+    />
+    <path
+      v-else-if="name === 'link'"
+      d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"
+    />
+    <path
+      v-else-if="name === 'unlink'"
+      d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1M8 3.5v2M3.5 8h2M16 20.5v-2M20.5 16h-2"
+    />
+    <path
+      v-else-if="name === 'bolt'"
+      d="M13 3L5.5 13.5H11L10 21l8.5-10.5H13z"
+    />
+    <path
+      v-else-if="name === 'cycle'"
+      d="M20 5v5h-5M4 19v-5h5M5.6 9.5A7.5 7.5 0 0 1 19 8l1 2M18.4 14.5A7.5 7.5 0 0 1 5 16l-1-2"
     />
   </svg>
 </template>

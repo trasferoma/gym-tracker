@@ -1,13 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
+import { wrapExercisesInSingleClusters } from './exerciseClusters';
 import { checkCompletionEligibility, completeWorkout, reopenWorkout } from './workoutCompletion';
-import { createDraftWorkout, createExercise, createExerciseSet, createMuscleGroupWorkout } from './workoutFactory';
+import {
+    createDraftWorkout,
+    createExercise,
+    createExerciseCluster,
+    createExerciseSet,
+    createMuscleGroupWorkout
+} from './workoutFactory';
 import type { MuscleGroupWorkout, Workout } from './workout';
 
 function withOneValidExercise(name: string, position: number): MuscleGroupWorkout {
     const group = createMuscleGroupWorkout(name, position);
     const exercise = createExercise('Panca piana', 0);
-    return { ...group, exercises: [{ ...exercise, sets: [createExerciseSet(0, 10, 20)] }] };
+    const exercises = [{ ...exercise, sets: [createExerciseSet(0, 10, 20)] }];
+    return { ...group, clusters: wrapExercisesInSingleClusters(exercises) };
 }
 
 function withGroups(count: number): Workout {
@@ -72,7 +80,7 @@ describe('checkCompletionEligibility', () => {
         const workout = {
             ...draft,
             muscleGroups: [
-                { ...group, exercises: [exerciseWithoutSets] },
+                { ...group, clusters: wrapExercisesInSingleClusters([exerciseWithoutSets]) },
                 withOneValidExercise('Schiena', 1)
             ]
         };
@@ -80,6 +88,50 @@ describe('checkCompletionEligibility', () => {
         const eligibility = checkCompletionEligibility(workout);
 
         expect(eligibility.eligible).toBe(false);
+    });
+
+    it('rifiuta un gruppo i cui raggruppamenti non contengono esercizi', () => {
+        const group = withOneValidExercise('Petto', 0);
+        const emptyCluster = { ...group.clusters[0]!, exercises: [] };
+        const workout = { ...createDraftWorkout('2026-01-15'), muscleGroups: [{ ...group, clusters: [emptyCluster] }] };
+
+        const eligibility = checkCompletionEligibility(workout);
+
+        expect(eligibility).toEqual({ eligible: false, reason: 'Il gruppo "Petto" non ha ancora esercizi.' });
+    });
+
+    it('rifiuta un esercizio senza serie valide dentro un raggruppamento multiplo', () => {
+        const group = createMuscleGroupWorkout('Petto', 0);
+        const validExercise = { ...createExercise('Panca piana', 0), sets: [createExerciseSet(0, 10, 20)] };
+        const exerciseWithoutSets = { ...createExercise('Croci', 1), sets: [] };
+        const superset = {
+            ...createExerciseCluster(validExercise, 0),
+            kind: 'superset' as const,
+            exercises: [validExercise, exerciseWithoutSets]
+        };
+        const workout = { ...createDraftWorkout('2026-01-15'), muscleGroups: [{ ...group, clusters: [superset] }] };
+
+        const eligibility = checkCompletionEligibility(workout);
+
+        expect(eligibility).toEqual({ eligible: false, reason: 'L\'esercizio "Croci" non ha ancora una serie valida.' });
+    });
+
+    it.each([
+        ['un singolo con due esercizi', 'single' as const, 2],
+        ['un multiplo con un solo esercizio', 'superset' as const, 1]
+    ])('rifiuta %s indicando il gruppo', (_description, kind, exerciseCount) => {
+        const group = createMuscleGroupWorkout('Petto', 0);
+        const exercises = Array.from({ length: exerciseCount }, (_, index) => ({
+            ...createExercise(`Esercizio ${index}`, index),
+            sets: [createExerciseSet(0, 10, 20)]
+        }));
+        const cluster = { ...createExerciseCluster(exercises[0]!, 0), kind, exercises };
+        const workout = { ...createDraftWorkout('2026-01-15'), muscleGroups: [{ ...group, clusters: [cluster] }] };
+
+        const eligibility = checkCompletionEligibility(workout);
+
+        expect(eligibility.eligible).toBe(false);
+        expect(eligibility.eligible === false && eligibility.reason).toContain('Gruppo "Petto"');
     });
 });
 

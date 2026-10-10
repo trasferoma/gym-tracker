@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useStorageStatus } from './useStorageStatus';
 import { gymTrackerDatabase } from '@/persistence/gymTrackerDatabase';
 import { saveWorkout } from '@/persistence/workoutRepository';
+import { wrapExercisesInSingleClusters } from '@/domain/exerciseClusters';
 import { createDraftWorkout, createExercise, createExerciseSet, createMuscleGroupWorkout } from '@/domain/workoutFactory';
 
 function stubStorageManager(persistResult: boolean): void {
@@ -23,7 +24,7 @@ afterEach(async () => {
 describe('refresh', () => {
     it('conta allenamenti, esercizi e serie su tutto lo storico', async () => {
         const exercise = { ...createExercise('Panca piana', 0), sets: [createExerciseSet(0), createExerciseSet(1)] };
-        const group = { ...createMuscleGroupWorkout('Petto', 0), exercises: [exercise] };
+        const group = { ...createMuscleGroupWorkout('Petto', 0), clusters: wrapExercisesInSingleClusters([exercise]) };
         const withOneExercise = { ...createDraftWorkout('2026-01-01'), muscleGroups: [group] };
         const withNoExercises = createDraftWorkout('2026-01-02');
         await saveWorkout(withOneExercise);

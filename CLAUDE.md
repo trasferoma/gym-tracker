@@ -140,9 +140,15 @@ Regole architetturali da non violare — sono state verificate e vanno mantenute
 
 ## Modello dei dati
 
-Una sola tabella `workouts` in IndexedDB, dove ogni record è il **documento intero** con gli array annidati (`Workout > MuscleGroupWorkout > Exercise > ExerciseSet`), più una tabella `appMeta` chiave/valore per la data dell'ultimo backup. Scelta deliberata: i casi d'uso reali sono leggi-tutto, copia, aggiorna atomicamente, esporta — tutti un `get` o un `put`. Le interrogazioni trasversali sono scansioni complete, e va bene così.
+Una sola tabella `workouts` in IndexedDB, dove ogni record è il **documento intero** con gli array annidati (`Workout > MuscleGroupWorkout > ExerciseCluster > Exercise > ExerciseSet`), più una tabella `appMeta` chiave/valore per la data dell'ultimo backup. Scelta deliberata: i casi d'uso reali sono leggi-tutto, copia, aggiorna atomicamente, esporta — tutti un `get` o un `put`. Le interrogazioni trasversali sono scansioni complete, e va bene così.
 
-Un gruppo muscolare **non contiene serie**: contiene esercizi, e le serie stanno negli esercizi. Ogni serie ha ripetizioni e peso propri.
+Un gruppo muscolare **non contiene esercizi direttamente**: contiene **raggruppamenti** (`ExerciseCluster`), che contengono gli esercizi, e le serie stanno negli esercizi. Ogni serie ha ripetizioni e peso propri. Per scorrere gli esercizi di un gruppo si usa `listGroupExercises`.
+
+### Raggruppamenti
+
+Il raggruppamento c'è sempre e ha un tipo: `single` (esattamente 1 esercizio), `superset` o `circuit` (almeno 2). Due tempi in secondi interi ≥ 0: `restAfterRoundSeconds` per tutti i tipi (sul singolo è il recupero fra le serie) e `restBetweenExercisesSeconds`, mostrato solo per il circuito ma conservato anche sugli altri tipi. Il giro *n* è la serie *n* di ogni esercizio: non si salva. I tempi sono solo da leggere, non c'è timer. Le posizioni sono contigue da 0 a entrambi i livelli. Le invarianti stanno in `checkClusterInvariants` (`domain/exerciseClusters.ts`), usata sia dal completamento sia dalla validazione del backup. Le operazioni (collega al successivo, stacca, cambio tipo, tempi, riordino, aggiunta interna) lavorano sulla **lista** di raggruppamenti e non sul gruppo: in futuro il raggruppamento potrà passare dal gruppo muscolare all'allenamento («strada A»), e cambierà solo il contenitore. Piano e decisioni in `spec-superserie-circuiti.md` e `implementation-superserie-circuiti.md`, nella cartella di lavoro `c:\build\git\gym-tracker-lavoro\spec\`.
+
+Lo schema Dexie è alla **versione 2**: l'upgrade dalla 1 avvolge ogni esercizio esistente in un raggruppamento singolo (`persistence/gymTrackerDatabase.ts`). È l'unico punto che conosce ancora la forma vecchia (`exercises` sotto il gruppo).
 
 Tutti i tipi di dominio sono `readonly` in profondità e le trasformazioni restituiscono nuovi oggetti: nessuna mutazione in place, mai.
 
@@ -159,6 +165,8 @@ Non esiste un pulsante «salva». `useAutosave` fa debounce (500 ms), serializza
 ### Import/export
 
 L'importazione **valida il file per intero prima di toccare il database** (`backup/backupValidation.ts`). L'unità di merge è il **workout intero**, mai il singolo campo o la singola serie, e a parità di `id` vince l'`updatedAt` più recente. «Sostituisci tutto» e l'azzeramento passano da una singola transazione Dexie.
+
+Il formato del backup è alla **versione 2** (`BACKUP_FORMAT_VERSION`), con i raggruppamenti. Un file con qualunque altra versione, compresa la 1, è rifiutato come versione non supportata: per scelta dell'utente non c'è compatibilità all'indietro.
 
 ## Convenzioni di codice
 
@@ -178,10 +186,10 @@ Vitest, file `*.spec.ts` **accanto al codice che testano**. L'ambiente di defaul
 
 `vitest.setup.ts` installa `fake-indexeddb/auto` e il polyfill di `crypto`, quindi i test di `persistence/` girano su un IndexedDB vero in memoria: vanno ripuliti fra un test e l'altro, non mockati.
 
-Stato attuale della suite: **180 test in 26 file**, tutti verdi, con lint e typecheck puliti.
+Stato attuale della suite: **328 test in 33 file**, tutti verdi su Node 22, con lint e typecheck puliti. Su Node 18 falliscono i test della migrazione Dexie (`CustomEvent is not defined`): è l'ennesimo motivo per cui serve Node ≥ 20.19.
 
 ## Stato del repository
 
-- **Git inizializzato ma senza alcun commit.** Branch `master`, tutto non tracciato. Non c'è quindi una baseline per i diff: le verifiche di «cosa è cambiato» oggi si fanno leggendo, non con `git diff`. Un primo commit chiuderebbe la questione.
-- `gym-tracker-backup-esempio.json` in radice (gitignorato) contiene **21 allenamenti su sette settimane** — 47 gruppi, 80 esercizi, 306 serie, UUID veri — generati dallo storico finto del prototipo e validati con `validateBackupFile`. Serve a vedere l'app con dati realistici invece di un database vuoto: si importa da **Dati → Scegli un file → Unisci**.
+- **Git con storia**, branch `master`: le verifiche di «cosa è cambiato» si fanno con `git diff` rispetto all'ultimo commit. I commit li fa l'utente.
+- `gym-tracker-backup-esempio.json` in radice (gitignorato) è nel **formato 2** e contiene **21 allenamenti su sette settimane** — 47 gruppi, 63 raggruppamenti (46 singoli, 12 superserie, 5 circuiti), 80 esercizi, 306 serie, UUID veri — generati dallo storico finto del prototipo, convertiti dal formato 1 con lo script `c:\build\git\gym-tracker-lavoro\scripts\regenerateBackupExample.ts` e validati con `validateBackupFile`. Serve a vedere l'app con dati realistici invece di un database vuoto: si importa da **Dati → Scegli un file → Unisci**.
 - `public/` contiene le icone PWA generate da `home.png` con uno script ad hoc, senza aggiungere dipendenze: `pwa-192`, `pwa-512`, `pwa-maskable-512` (fondo lime, perché il manubrio grafite su fondo grafite era illeggibile), `apple-touch-icon`, `favicon`, e `logo-320` usato dalla home al posto dei 360 kB dell'originale.

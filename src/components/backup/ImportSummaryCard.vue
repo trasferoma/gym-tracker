@@ -3,7 +3,7 @@ import BusyButton from '@/components/feedback/BusyButton.vue';
 import type { BackupImportSummary } from '@/backup/backupImportPlan';
 import { formatCount } from '@/presentation/italianFormat';
 
-const props = withDefaults(defineProps<{ summary: BackupImportSummary; busy?: boolean }>(), {
+const props = withDefaults(defineProps<{ summary: BackupImportSummary; formatVersion: number; busy?: boolean }>(), {
     busy: false
 });
 
@@ -16,7 +16,7 @@ const presentLabel = formatCount(props.summary.alreadyPresentCount, 'già presen
 
 <template>
   <div class="card import-sum">
-    <b>File valido</b> <span class="chip chip--accent">versione 1</span>
+    <b>File valido</b> <span class="chip chip--accent">versione {{ formatVersion }}</span>
     <ul>
       <li>{{ totalLabel }}</li>
       <li>{{ newLabel }}, {{ presentLabel }}</li>

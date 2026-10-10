@@ -20,11 +20,22 @@ export interface Exercise {
     readonly sets: readonly ExerciseSet[];
 }
 
+export type ExerciseClusterKind = 'single' | 'superset' | 'circuit';
+
+export interface ExerciseCluster {
+    readonly id: string;
+    readonly kind: ExerciseClusterKind;
+    readonly position: number;
+    readonly restAfterRoundSeconds: number;
+    readonly restBetweenExercisesSeconds: number;
+    readonly exercises: readonly Exercise[];
+}
+
 export interface MuscleGroupWorkout {
     readonly id: string;
     readonly name: string;
     readonly position: number;
-    readonly exercises: readonly Exercise[];
+    readonly clusters: readonly ExerciseCluster[];
 }
 
 export interface Workout {
