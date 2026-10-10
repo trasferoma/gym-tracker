@@ -3,8 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
     describeAllDataLoss,
     describeWorkoutDeletion,
-    formatWeightDifference,
-    formatWorkoutDayCompact,
     formatWorkoutDayLong,
     formatWorkoutDayShort
 } from './italianFormat';
@@ -23,23 +21,6 @@ describe('formatWorkoutDayShort e formatWorkoutDayLong', () => {
     it('interpretano la data locale senza slittamenti di giorno', () => {
         expect(formatWorkoutDayShort('2026-01-15')).toContain('15');
         expect(formatWorkoutDayLong('2026-01-15')).toContain('15');
-    });
-});
-
-describe('formatWorkoutDayCompact', () => {
-    it('interpreta la data locale senza slittamenti di giorno', () => {
-        expect(formatWorkoutDayCompact('2026-01-15')).toContain('15');
-    });
-});
-
-describe('formatWeightDifference', () => {
-    it('antepone il segno alle variazioni in aumento e in calo', () => {
-        expect(formatWeightDifference(5)).toBe('+5');
-        expect(formatWeightDifference(-2.5)).toBe('-2,5');
-    });
-
-    it('lascia la variazione nulla senza segno', () => {
-        expect(formatWeightDifference(0)).toBe('0');
     });
 });
 

@@ -4,7 +4,6 @@ import type { Workout } from '@/domain/workout';
 
 const shortDayFormatter = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
 const longDayFormatter = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
-const compactDayFormatter = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short' });
 
 function formatShortDay(date: Date): string {
     return shortDayFormatter.format(date);
@@ -12,10 +11,6 @@ function formatShortDay(date: Date): string {
 
 function formatLongDay(date: Date): string {
     return longDayFormatter.format(date);
-}
-
-function formatCompactDay(date: Date): string {
-    return compactDayFormatter.format(date);
 }
 
 export function formatWorkoutDayShort(workoutDate: string): string {
@@ -28,25 +23,8 @@ export function formatWorkoutDayLong(workoutDate: string): string {
     return formatLongDay(date);
 }
 
-export function formatWorkoutDayCompact(workoutDate: string): string {
-    const date = parseLocalDate(workoutDate);
-    return formatCompactDay(date);
-}
-
 export function formatWeight(weight: number): string {
     return Number.isInteger(weight) ? String(weight) : String(weight).replace('.', ',');
-}
-
-export function formatWeightDifference(difference: number): string {
-    const absoluteDifference = Math.abs(difference);
-    const magnitude = formatWeight(absoluteDifference);
-    if (difference > 0) {
-        return `+${magnitude}`;
-    }
-    if (difference < 0) {
-        return `-${magnitude}`;
-    }
-    return magnitude;
 }
 
 export function formatCount(count: number, singular: string, plural: string): string {

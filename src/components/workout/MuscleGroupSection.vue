@@ -118,7 +118,6 @@ function addExercise(name: string): void {
         :key="exercise.id"
         :exercise="exercise"
         :group="group"
-        :group-position="groupPosition"
         :index="exerciseIndex"
         :total="group.exercises.length"
         :suggestions="suggestions"

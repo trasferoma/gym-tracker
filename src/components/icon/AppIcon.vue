@@ -3,7 +3,6 @@ export type IconName =
     | 'home'
     | 'dumbbell'
     | 'plus'
-    | 'chart'
     | 'archive'
     | 'back'
     | 'next'
@@ -47,10 +46,6 @@ defineProps<{ name: IconName }>();
       v-else-if="name === 'plus'"
       d="M12 5v14M5 12h14"
     />
-    <template v-else-if="name === 'chart'">
-      <path d="M4 19V5M4 19h16" />
-      <path d="M7.5 15l3.5-4 3 2.5L20 7" />
-    </template>
     <template v-else-if="name === 'archive'">
       <rect
         x="3.5"

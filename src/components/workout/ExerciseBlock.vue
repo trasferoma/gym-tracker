@@ -5,15 +5,12 @@ import ExercisePicker from './ExercisePicker.vue';
 import SetRegister from './SetRegister.vue';
 import AppIcon from '@/components/icon/AppIcon.vue';
 import type { UseWorkoutDraft } from '@/composables/useWorkoutDraft';
-import { sharedStatisticsPath } from '@/composables/useStatisticsPath';
-import { deriveStatKey, schemeLabel } from '@/domain/statistics/statKey';
 import type { Exercise, MuscleGroupWorkout } from '@/domain/workout';
-import { router } from '@/router';
+import { formatRepetitionScheme } from '@/presentation/repetitionScheme';
 
 const props = defineProps<{
     exercise: Exercise;
     group: MuscleGroupWorkout;
-    groupPosition: number;
     index: number;
     total: number;
     suggestions: readonly string[];
@@ -24,7 +21,7 @@ const emit = defineEmits<{ delete: [] }>();
 
 const renaming = ref(false);
 
-const schemeChip = computed(() => schemeLabel(props.exercise.sets.map((set) => set.repetitions)));
+const schemeChip = computed(() => formatRepetitionScheme(props.exercise.sets));
 
 function reorderUp(): void {
     props.draft.reorderExercise(props.group.id, props.exercise.id, 'up');
@@ -41,12 +38,6 @@ function requestDelete(): void {
 function renameExercise(name: string): void {
     props.draft.renameExercise(props.group.id, props.exercise.id, name);
     renaming.value = false;
-}
-
-function viewTrend(): void {
-    const key = deriveStatKey(props.groupPosition, props.group, props.exercise);
-    sharedStatisticsPath.enterFromShortcut(key);
-    void router.push({ name: 'statistics' });
 }
 </script>
 
@@ -111,7 +102,6 @@ function viewTrend(): void {
       :group-id="group.id"
       :exercise-id="exercise.id"
       :draft="draft"
-      @view-trend="viewTrend"
     />
   </div>
 </template>

@@ -43,7 +43,7 @@ npm run build        # check-node + typecheck + build in dist/
 npm run preview      # serve dist/ con service worker attivo
 ```
 
-Un singolo file o test: `npx vitest run src/domain/statistics/statKey.spec.ts`, `npx vitest run -t "nome del test"`.
+Un singolo file o test: `npx vitest run src/presentation/repetitionScheme.spec.ts`, `npx vitest run -t "nome del test"`.
 
 **Node ≥ 20.19 obbligatorio** (`npm run check-node` lo verifica prima del build): su Node 18 il build della PWA si rompe con `ReferenceError: crypto is not defined` dentro `serialize-javascript`. Il README spiega il workaround se si è costretti a restare indietro.
 
@@ -120,7 +120,7 @@ persistence/  UNICO punto che conosce Dexie
 backup/       formato, validazione, piano e servizio di import/export
 composables/  stato reattivo, autosave, orchestrazione domain ↔ persistence
 presentation/ formattazione italiana di date, pesi, plurali
-components/   presentazionali, per concetto (shell, feedback, workout, statistics, icon, backup)
+components/   presentazionali, per concetto (shell, feedback, workout, icon, backup)
 views/        una per rotta, thin
 router/       rotte + memoria della provenienza + indicatore di caricamento
 styles/       tokens.css (variabili) + base.css
@@ -131,7 +131,7 @@ Regole architetturali da non violare — sono state verificate e vanno mantenute
 
 - **Dexie solo in `persistence/`.** Nessun altro file importa `dexie` o `gymTrackerDatabase`.
 - **Nessuna logica di dominio nei componenti e nelle viste.** Le viste chiamano composables e funzioni di `presentation/`; il calcolo sta in `domain/`.
-- **Nessun colore fuori dai token CSS** in `styles/tokens.css`. Niente framework CSS, niente librerie di grafici o di icone: la sparkline è SVG scritto a mano, le icone sono SVG inline in `AppIcon.vue`.
+- **Nessun colore fuori dai token CSS** in `styles/tokens.css`. Niente framework CSS, niente librerie di icone: le icone sono SVG inline in `AppIcon.vue`.
 - **`localStorage` non è usato per i dati applicativi.** Solo IndexedDB.
 - **Nessuno store globale** (niente Pinia): lo stato condiviso è nei composables, esportati come singleton solo dove serve davvero (`sharedLoadingIndicator`).
 - **Nessuna dipendenza nuova** senza motivo forte: il progetto vive su Vue + Vue Router + Dexie e basta.
@@ -151,12 +151,6 @@ Il vincolo **1..3 gruppi muscolari** si applica al *completamento*, non alla boz
 ### Esito invece di eccezione
 
 Le operazioni di dominio che possono legittimamente fallire restituiscono `WorkoutOperationOutcome` (`{ outcome: 'applied', workout }` | `{ outcome: 'rejected', reason }`), o un tipo discriminato analogo (`CompletionEligibility`). Le eccezioni restano per gli errori di programmazione. Chi introduce una nuova regola di rifiuto segue questo schema e fornisce una `reason` italiana comprensibile all'utente.
-
-### Chiave statistica
-
-Una serie statistica è `posizione del gruppo nella giornata × gruppo × esercizio × schema delle ripetizioni`. La sequenza completa dei gruppi **non** entra nella chiave (conta l'affaticamento accumulato, non cosa è venuto dopo); lo schema è la tupla ordinata delle ripetizioni, quindi `12-12-10-10` e `10-10-12-12` sono chiavi distinte. La metrica è solo il peso, per posizione di serie. Entrano solo le giornate completate, e di quelle tutte le serie.
-
-Tutto è calcolato al volo da funzioni pure in `domain/statistics/`: **nessun aggregato precalcolato o persistito**.
 
 ### Autosave
 
@@ -184,10 +178,10 @@ Vitest, file `*.spec.ts` **accanto al codice che testano**. L'ambiente di defaul
 
 `vitest.setup.ts` installa `fake-indexeddb/auto` e il polyfill di `crypto`, quindi i test di `persistence/` girano su un IndexedDB vero in memoria: vanno ripuliti fra un test e l'altro, non mockati.
 
-Stato attuale della suite: **202 test in 30 file**, tutti verdi, con lint e typecheck puliti.
+Stato attuale della suite: **180 test in 26 file**, tutti verdi, con lint e typecheck puliti.
 
 ## Stato del repository
 
 - **Git inizializzato ma senza alcun commit.** Branch `master`, tutto non tracciato. Non c'è quindi una baseline per i diff: le verifiche di «cosa è cambiato» oggi si fanno leggendo, non con `git diff`. Un primo commit chiuderebbe la questione.
-- `gym-tracker-backup-esempio.json` in radice (gitignorato) contiene **21 allenamenti su sette settimane** — 47 gruppi, 80 esercizi, 306 serie, UUID veri — generati dallo storico finto del prototipo e validati con `validateBackupFile`. Serve a vedere statistiche e sparkline con dati realistici invece di un database vuoto: si importa da **Dati → Scegli un file → Unisci**.
+- `gym-tracker-backup-esempio.json` in radice (gitignorato) contiene **21 allenamenti su sette settimane** — 47 gruppi, 80 esercizi, 306 serie, UUID veri — generati dallo storico finto del prototipo e validati con `validateBackupFile`. Serve a vedere l'app con dati realistici invece di un database vuoto: si importa da **Dati → Scegli un file → Unisci**.
 - `public/` contiene le icone PWA generate da `home.png` con uno script ad hoc, senza aggiungere dipendenze: `pwa-192`, `pwa-512`, `pwa-maskable-512` (fondo lime, perché il manubrio grafite su fondo grafite era illeggibile), `apple-touch-icon`, `favicon`, e `logo-320` usato dalla home al posto dei 360 kB dell'originale.

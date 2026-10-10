@@ -14,7 +14,6 @@ interface Tab {
 const TABS: readonly Tab[] = [
     { name: 'home', icon: 'home', label: 'Home' },
     { name: 'history', icon: 'dumbbell', label: 'Allenamenti' },
-    { name: 'statistics', icon: 'chart', label: 'Statistiche' },
     { name: 'data', icon: 'archive', label: 'Dati' }
 ];
 
@@ -54,7 +53,7 @@ const activeName = computed<PrimaryRouteName>(() => (
 .tabbar {
     flex: 0 0 auto;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 2px;
     padding: 6px 6px calc(env(safe-area-inset-bottom) + 6px);
     background: var(--surface);

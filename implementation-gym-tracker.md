@@ -386,6 +386,10 @@ Il contrasto reciproco fra `--warn` e `--danger` è **1,18:1** in tema chiaro e 
 
 **Verifiche:** pipeline completa — scrittura con `clean-code-implementer`, verifica in seconda invocazione separata a contesto pulito. La verifica ha confermato il perimetro (nessun file fuori da quello dichiarato) e ha colmato un solo buco: il test sul valore non ammesso copriva la sola stringa, esteso a `null`, stringa vuota, numero e oggetto — il codice era già corretto, mancava la prova. `solid-srp-reviewer` **non invocato**: è vietato su codice non Java, e questo è TypeScript e Vue. `npm test` **213 test verdi in 31 file**, `npm run lint` pulito, `npm run typecheck` pulito.
 
+## 2026-10-10 — Statistiche rimosse
+
+Su richiesta dell'utente le statistiche sono state **eliminate del tutto**: vista, rotta, voce della barra, scorciatoia dall'esercizio, `domain/statistics/`, `components/statistics/`, `useStatisticsPath`, icona `chart`, token `--line-1…6` e i formattatori usati solo da lì. L'etichetta dello schema (`4x6`, `12-12-10`) resta, come `formatRepetitionScheme` in `presentation/repetitionScheme.ts`. Questo documento non viene riscritto: le fasi e le decisioni sopra che parlano di statistiche sono storia. Piano e motivazioni in `spec-superserie-circuiti.md` e `implementation-superserie-circuiti.md`, nella cartella di lavoro `c:\build\git\gym-tracker-lavoro\spec\`.
+
 ## Esito finale
 
 `2026-08-26` — **implementazione completa**. Tutte e undici le fasi chiuse. Due criteri di accettazione su venti restano in attesa dell'utente, perché richiedono un occhio umano e un telefono: non sono lavoro mancante, sono verifiche non delegabili.

@@ -3,17 +3,16 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 import { sharedLoadingIndicator } from '@/composables/useLoadingIndicator';
 
-export type PrimaryRouteName = 'home' | 'history' | 'statistics' | 'data';
+export type PrimaryRouteName = 'home' | 'history' | 'data';
 export type RouteName = PrimaryRouteName | 'new' | 'workout';
 
-export const PRIMARY_ROUTE_NAMES: readonly PrimaryRouteName[] = ['home', 'history', 'statistics', 'data'];
+export const PRIMARY_ROUTE_NAMES: readonly PrimaryRouteName[] = ['home', 'history', 'data'];
 
 const routes: RouteRecordRaw[] = [
     { path: '/', name: 'home', component: () => import('@/views/HomeView.vue') },
     { path: '/allenamenti', name: 'history', component: () => import('@/views/WorkoutHistoryView.vue') },
     { path: '/nuovo', name: 'new', component: () => import('@/views/NewWorkoutView.vue') },
     { path: '/allenamenti/:id', name: 'workout', component: () => import('@/views/WorkoutDetailView.vue'), props: true },
-    { path: '/statistiche', name: 'statistics', component: () => import('@/views/StatisticsView.vue') },
     { path: '/dati', name: 'data', component: () => import('@/views/DataView.vue') }
 ];
 

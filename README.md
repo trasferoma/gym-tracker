@@ -10,7 +10,6 @@ Uso personale. Interfaccia in italiano, codice in inglese.
 - Salva **automaticamente** mentre compili: nessun pulsante «salva». Lo stato del salvataggio è sempre visibile.
 - Permette di **copiare la struttura** di una giornata precedente e ripartire da lì.
 - Mostra lo **storico** in ordine decrescente, con filtro per gruppo muscolare.
-- Deriva le **statistiche di progressione del peso**, per posizione di serie.
 - **Esporta e importa** tutti i dati in un unico file JSON.
 
 Più allenamenti nello stesso giorno sono ammessi: nello storico si distinguono per ora di creazione e gruppi muscolari.
@@ -28,7 +27,7 @@ Più allenamenti nello stesso giorno sono ammessi: nello storico si distinguono 
 | Test | Vitest 3 con `fake-indexeddb` |
 | Qualità | ESLint 9 flat config con `typescript-eslint` type-checked, `vue-tsc` |
 
-Nessun framework CSS, nessuna libreria di grafici, nessuna libreria di icone, nessuno store globale. La sparkline delle statistiche è SVG scritto a mano; le icone sono SVG inline.
+Nessun framework CSS, nessuna libreria di icone, nessuno store globale. Le icone sono SVG inline.
 
 ## Prerequisiti
 
@@ -117,13 +116,12 @@ src/
 │   ├── workoutCopy.ts         copia da giornata precedente
 │   ├── workoutCompletion.ts   validazione del completamento
 │   ├── setInput.ts            parsing di ripetizioni e peso digitati
-│   ├── exerciseSuggestions.ts suggerimenti dallo storico
-│   └── statistics/            chiave statistica, voci, navigazione, geometria sparkline
+│   └── exerciseSuggestions.ts suggerimenti dallo storico
 ├── persistence/         unico punto che conosce Dexie
 ├── backup/              formato, validazione, export, piano e servizio di import
-├── composables/         stato applicativo reattivo, autosave, percorsi
-├── presentation/        formattazione italiana di date, pesi e plurali
-├── components/          shell, icone, riscontri, workout, statistiche, backup
+├── composables/         stato applicativo reattivo, autosave
+├── presentation/        formattazione italiana di date, pesi, plurali e schema delle ripetizioni
+├── components/          shell, icone, riscontri, workout, backup
 ├── views/               una vista per rotta
 ├── router/              rotte e provenienza
 └── styles/              token di tema e stili di base
@@ -131,7 +129,7 @@ src/
 
 Regole architetturali mantenute e verificate: **nessun accesso a Dexie fuori da `persistence/`**, nessuna logica di dominio nei componenti, viste thin, nessun colore fuori dai token CSS, nessun uso di `localStorage` per i dati applicativi.
 
-I test stanno accanto al codice che testano, come `src/**/*.spec.ts`. Sono 194 in 29 file, comprese le prove di componente che montano davvero i componenti Vue.
+I test stanno accanto al codice che testano, come `src/**/*.spec.ts`. Sono 180 in 26 file, comprese le prove di componente che montano davvero i componenti Vue.
 
 ### `prototype/`
 
@@ -164,21 +162,6 @@ Il vincolo da 1 a 3 gruppi si applica al **completamento**, non alla compilazion
 IndexedDB contiene **una sola tabella `workouts`**, dove ogni record è il `Workout` intero con i suoi array annidati, più una piccola tabella `appMeta` per la data dell'ultimo backup.
 
 I quattro casi d'uso reali dell'app sono leggere una giornata completa, copiarla, aggiornarla atomicamente ed esportarla: con l'aggregato sono tutti un `get` o un `put`, senza join da scrivere a mano e senza transazioni multi-tabella. Il prezzo è che ogni salvataggio riscrive il documento del giorno — pochi KB — e che le interrogazioni trasversali sono scansioni complete della tabella. Con un uso personale, cioè qualche centinaio di record in anni, il costo non si misura. Lo schema è versionato e pronto alle migrazioni.
-
-### Statistiche
-
-Una serie statistica è identificata da:
-
-```
-posizione del gruppo nella giornata  ×  gruppo  ×  esercizio  ×  schema delle ripetizioni
-```
-
-- La **sequenza completa** dei gruppi non entra nella chiave: `Petto > Bicipiti` e `Petto > Spalle` confluiscono nella stessa statistica, purché il Petto sia nella stessa posizione. Conta l'affaticamento accumulato, non cosa hai allenato dopo.
-- Lo **schema** è la tupla delle ripetizioni nell'ordine di esecuzione: `4x6` e `3x8` sono schemi distinti, e così `12-12-10-10` e `10-10-12-12`. L'etichetta è `NxR` quando le ripetizioni sono uniformi, altrimenti la tupla con i trattini.
-- La metrica è **solo il peso, per posizione di serie**: dentro una chiave il numero di serie è fissato dallo schema, quindi la serie 2 è sempre confrontabile con la serie 2.
-- Entrano **solo le giornate completate** e, dentro quelle, **tutte** le serie, spuntate o no.
-
-Tutto è calcolato al volo da funzioni pure: nessun aggregato precalcolato, quindi nessun rischio di statistiche disallineate dai dati.
 
 ## Importazione ed esportazione
 

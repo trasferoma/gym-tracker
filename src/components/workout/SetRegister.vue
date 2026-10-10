@@ -11,8 +11,6 @@ const props = defineProps<{
     draft: UseWorkoutDraft;
 }>();
 
-const emit = defineEmits<{ 'view-trend': [] }>();
-
 function addSet(): void {
     props.draft.addExerciseSet(props.groupId, props.exerciseId);
 }
@@ -56,14 +54,6 @@ function duplicateLastSet(): void {
       @click="duplicateLastSet"
     >
       <AppIcon name="copy" />Duplica ultima
-    </button>
-    <button
-      type="button"
-      class="btn btn--ghost btn--sm"
-      aria-label="Statistiche di questo esercizio"
-      @click="emit('view-trend')"
-    >
-      <AppIcon name="chart" />
     </button>
   </div>
 </template>
